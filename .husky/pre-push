@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# ── Diff-Guardian Pre-Push Hook ─────────────────────────────────────────────
+# Terminal push: strict gatekeeper (exit 1 blocks, --no-verify bypasses)
+# VS Code push:  advisory mode (push goes through, .dg-report.json generated)
+
+# Node version guard — requires Node 18+
+NODE_MAJOR=$(node -e "process.stdout.write(process.versions.node.split('.')[0])" 2>/dev/null)
+if [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 18 ]; then
+  echo " [diff-guardian] Skipping: requires Node.js 18 or higher (found: ${NODE_MAJOR:-none})."
+  exit 0
+fi
+
+# ── VS Code Source Control UI detection ──────────────────────────────────────
+# VSCODE_GIT_ASKPASS_MAIN is set in BOTH VS Code's integrated terminal
+# AND the Source Control UI. To distinguish them, we also check if stdout
+# is a TTY:
+#   - Integrated terminal:  VSCODE env set + stdout IS a TTY  → strict
+#   - Source Control UI:    VSCODE env set + stdout NOT a TTY  → advisory
+if [ -n "$VSCODE_GIT_ASKPASS_MAIN" ] && [ ! -t 1 ]; then
+  echo " Diff-Guardian: VS Code Source Control detected — running advisory analysis..."
+  NODE_OPTIONS="--max-old-space-size=512" DG_HOOK=pre-push npx dg --report-file .dg-report.json || true
+  exit 0
+fi
+
+# ── Terminal: strict gatekeeper ─────────────────────────────────────────────
+# Native escape hatch: `git push --no-verify` skips this hook entirely.
+echo " Diff-Guardian: Running pre-push API contract gatekeeper..."
+
+# 512 MB heap — sufficient for repos up to ~5,000 files.
+# Raise to 4096 in .huskyrc or your shell profile for monorepos.
+NODE_OPTIONS="--max-old-space-size=512" DG_HOOK=pre-push npx dg
