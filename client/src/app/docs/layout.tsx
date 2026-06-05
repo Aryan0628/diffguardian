@@ -38,7 +38,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
                 </svg>
               </div>
               <span style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                diffguardian
+                diff-guard
               </span>
             </Link>
 

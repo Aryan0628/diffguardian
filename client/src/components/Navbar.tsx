@@ -24,7 +24,7 @@ export default function Navbar() {
             </svg>
           </div>
           <span className="navbar-brand" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-            diffguardian
+            diff-guard
           </span>
           <span className="navbar-version" style={{ fontFamily: "var(--font-jetbrains)" }}>
             v0.1.0

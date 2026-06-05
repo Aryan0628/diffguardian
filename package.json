@@ -1,5 +1,5 @@
 {
-  "name": "diffguardian",
+  "name": "diff-guard",
   "version": "0.1.0",
   "description": "Impact-aware git diff CLI using WASM tree-sitter AST to map API blast radius.",
   "main": "dist/index.js",
@@ -14,8 +14,8 @@
     "node": ">=18"
   },
   "bin": {
-    "diffguardian": "./dist/cli.js",
-    "dg": "./dist/cli.js"
+    "diff-guard": "dist/cli.js",
+    "dg": "dist/cli.js"
   },
   "scripts": {
     "prepare": "husky",

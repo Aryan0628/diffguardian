@@ -47,10 +47,10 @@ export default function Hero() {
 
             <button
               className="hero-cmd"
-              onClick={() => { navigator.clipboard.writeText("npm i diffguardian && npx dg init"); setCopied("cmd"); setTimeout(() => setCopied(null), 2000); }}
+              onClick={() => { navigator.clipboard.writeText("npm i diff-guard && npx dg init"); setCopied("cmd"); setTimeout(() => setCopied(null), 2000); }}
             >
               <code className="hero-cmd-code" style={{ fontFamily: "var(--font-jetbrains)" }}>
-                npm i diffguardian && npx dg init
+                npm i diff-guard && npx dg init
               </code>
               <span className="hero-cmd-copy">
                 {copied === "cmd" ? (

@@ -106,7 +106,7 @@ jobs:
 
       <h2 id="next-steps">Next steps</h2>
       <ol>
-        <li>Commit both files: <code>git add -A && git commit -m &quot;chore: add diffguardian&quot;</code></li>
+        <li>Commit both files: <code>git add -A && git commit -m &quot;chore: add diff-guard&quot;</code></li>
         <li>Push to trigger the workflow on your next PR</li>
         <li>Customize <Link href="/docs/configuration">dg.config.json</Link> as needed</li>
         <li>Set up <Link href="/docs/git-hooks">Git Hooks</Link> for local enforcement</li>

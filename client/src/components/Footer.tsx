@@ -36,7 +36,7 @@ export default function Footer() {
             <div className="footer-col-links">
               <a href="https://github.com/Aryan0628/diffguardian/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontFamily: "var(--font-space-grotesk)" }}>Contributing Guide</a>
               <a href="https://github.com/Aryan0628/diffguardian/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontFamily: "var(--font-space-grotesk)" }}>Code of Conduct</a>
-              <a href="https://npmjs.com/package/diffguardian" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontFamily: "var(--font-space-grotesk)" }}>NPM Package</a>
+              <a href="https://npmjs.com/package/diff-guard" target="_blank" rel="noopener noreferrer" className="footer-link" style={{ fontFamily: "var(--font-space-grotesk)" }}>NPM Package</a>
             </div>
           </div>
 
@@ -45,7 +45,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="footer-bottom-bar">
           <div className="footer-copyright">
-            &copy; {new Date().getFullYear()} diffguardian. Built by <a href="https://www.linkedin.com/in/aryan-gupta-278376313/" target="_blank" rel="noopener noreferrer" className="footer-author-link">Aryan Gupta</a>.
+            &copy; {new Date().getFullYear()} diff-guard. Built by <a href="https://www.linkedin.com/in/aryan-gupta-278376313/" target="_blank" rel="noopener noreferrer" className="footer-author-link">Aryan Gupta</a>.
           </div>
           <div className="footer-copyright">
             Distributed under the MIT License.

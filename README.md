@@ -3,9 +3,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/diffguardian?style=flat-square&color=blue" alt="npm version" />
+  <img src="https://img.shields.io/npm/v/diff-guard?style=flat-square&color=blue" alt="npm version" />
   <img src="https://img.shields.io/github/license/Aryan0628/diffguardian?style=flat-square" alt="license" />
-  <img src="https://img.shields.io/node/v/diffguardian?style=flat-square" alt="node version" />
+  <img src="https://img.shields.io/node/v/diff-guard?style=flat-square" alt="node version" />
   <img src="https://img.shields.io/github/actions/workflow/status/Aryan0628/diffguardian/diff-guardian.yml?branch=main&style=flat-square&label=CI" alt="CI status" />
 </p>
 
@@ -76,7 +76,7 @@ $ npx dg compare main feature-branch
 
 ```bash
 # Install as a dev dependency (recommended)
-npm install --save-dev diffguardian
+npm install --save-dev diff-guard
 
 # Or run directly with npx — no install needed
 npx dg
@@ -328,7 +328,7 @@ Diff Guardian ships with Husky hooks for local enforcement:
 Diff Guardian can be used as a library in your own tooling:
 
 ```typescript
-import { runPipeline, ClassifierEngine, ASTMapper } from 'diffguardian';
+import { runPipeline, ClassifierEngine, ASTMapper } from 'diff-guard';
 
 // Run the full pipeline
 const exitCode = await runPipeline({
@@ -363,7 +363,7 @@ import type {
   FunctionSignature,
   InterfaceSignature,
   EnumSignature,
-} from 'diffguardian';
+} from 'diff-guard';
 ```
 
 ---

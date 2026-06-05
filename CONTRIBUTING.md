@@ -384,7 +384,7 @@ When reporting a bug, include the following:
 
 | Field                  | Details                                      |
 | ---------------------- | -------------------------------------------- |
-| **Environment**        | Node.js version, OS, `diff-guardian` version |
+| **Environment**        | Node.js version, OS, `diff-guard` version |
 | **Steps to reproduce** | Minimal reproduction case                    |
 | **Expected behavior**  | What should happen                           |
 | **Actual behavior**    | What actually happens                        |

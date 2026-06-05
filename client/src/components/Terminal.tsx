@@ -221,7 +221,7 @@ const COMMANDS: Record<string, TermLine[]> = {
 
   "npx dg --version": [
     { text: "", type: "blank" },
-    { text: "  diffguardian v0.1.0", type: "header" },
+    { text: "  diff-guard v0.1.0", type: "header" },
   ],
 };
 
@@ -443,7 +443,7 @@ export default function Terminal() {
             className="terminal-title"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-            diffguardian — Terminal
+            diff-guard — Terminal
           </span>
 
           {/* Interactive badge */}

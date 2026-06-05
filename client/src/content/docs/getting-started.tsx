@@ -23,10 +23,10 @@ export default function GettingStarted() {
       <h2 id="install">1. Install</h2>
       <p>
         Install Diff Guardian as a dev dependency in your project. This gives you access
-        to both the <code>diffguardian</code> and the shorthand <code>dg</code> binary.
+        to both the <code>diff-guard</code> and the shorthand <code>dg</code> binary.
       </p>
       <CodeBlock
-        code="npm install --save-dev diffguardian"
+        code="npm install --save-dev diff-guard"
         language="bash"
       />
 
