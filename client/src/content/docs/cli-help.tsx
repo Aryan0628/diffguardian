@@ -69,7 +69,7 @@ npx dg help`} language="bash" />
           </thead>
           <tbody>
             <tr><td><code>--help</code></td><td><code>-h</code></td><td>Display the help menu and exit.</td></tr>
-            <tr><td><code>--version</code></td><td><code>-v</code></td><td>Print the installed version of diff-guardian.</td></tr>
+            <tr><td><code>--version</code></td><td><code>-v</code></td><td>Print the installed version of diffguardian.</td></tr>
             <tr><td><code>--report-file &lt;path&gt;</code></td><td>—</td><td>Write a JSON report to the specified file instead of (or in addition to) terminal output.</td></tr>
             <tr><td><code>--staged</code></td><td>—</td><td>When used with <code>check</code>, analyze only files in the git staging area.</td></tr>
           </tbody>
@@ -79,7 +79,7 @@ npx dg help`} language="bash" />
       <h2 id="version">Version</h2>
       <CodeBlock
         code={`$ npx dg --version
-diff-guardian v0.1.3`}
+diffguardian v0.1.0`}
         language="bash"
       />
 

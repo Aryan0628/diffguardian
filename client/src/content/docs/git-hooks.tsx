@@ -52,7 +52,7 @@ npx husky init`}
 # Node version guard
 NODE_MAJOR=$(node -e "process.stdout.write(process.versions.node.split('.')[0])" 2>/dev/null)
 if [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 18 ]; then
-  echo " [diff-guardian] Skipping: requires Node.js 18 or higher."
+  echo " [diffguardian] Skipping: requires Node.js 18 or higher."
   exit 0
 fi
 
@@ -222,7 +222,7 @@ Merge made by the 'ort' strategy.
 
 NODE_MAJOR=$(node -e "process.stdout.write(process.versions.node.split('.')[0])" 2>/dev/null)
 if [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 18 ]; then
-  echo " [diff-guardian] Skipping: requires Node.js 18+."
+  echo " [diffguardian] Skipping: requires Node.js 18+."
   exit 0
 fi
 

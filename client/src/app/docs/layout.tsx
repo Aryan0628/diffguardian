@@ -38,7 +38,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
                 </svg>
               </div>
               <span style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                diff-guardian
+                diffguardian
               </span>
             </Link>
 
@@ -68,7 +68,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             </button>
 
             <a
-              href="https://github.com/Aryan0628/diff-guardian"
+              href="https://github.com/Aryan0628/diffguardian"
               className="navbar-icon-link"
               aria-label="GitHub"
             >

@@ -24,10 +24,10 @@ export default function Navbar() {
             </svg>
           </div>
           <span className="navbar-brand" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-            diff-guardian
+            diffguardian
           </span>
           <span className="navbar-version" style={{ fontFamily: "var(--font-jetbrains)" }}>
-            v0.1.3
+            v0.1.0
           </span>
         </a>
 
@@ -37,7 +37,7 @@ export default function Navbar() {
           </a>
 
           <a
-            href="https://github.com/Aryan0628/diff-guardian"
+            href="https://github.com/Aryan0628/diffguardian"
             className="navbar-icon-link"
             aria-label="GitHub"
           >
