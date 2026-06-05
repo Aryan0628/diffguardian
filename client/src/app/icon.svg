@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="diffGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0bf8ed" />
+      <stop offset="100%" stop-color="#9d4edd" />
+    </linearGradient>
+  </defs>
+  <rect width="24" height="24" rx="4" fill="#09090b" />
+  <path d="M12 21s7-3.5 7-8.5V5.5l-7-2.5-7 2.5v7c0 5 7 8.5 7 8.5z" fill="none" stroke="url(#diffGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="9.5 11.5 11.5 13.5 15.5 9.5" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
