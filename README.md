@@ -14,12 +14,12 @@
 </p>
 
 <p align="center">
-  <a href="https://diffguardian.space">Website</a> &middot;
-  <a href="https://diffguardian.space/docs">Documentation</a> &middot;
-  <a href="https://diffguardian.space/docs/rules/all">Rules Reference</a> &middot;
+  <a href="https://diffguardian.vercel.app">Website</a> &middot;
+  <a href="https://diffguardian.vercel.app/docs">Documentation</a> &middot;
+  <a href="https://diffguardian.vercel.app/docs/rules/all">Rules Reference</a> &middot;
   <a href="#quick-start">Quick Start</a> &middot;
-  <a href="CONTRIBUTING.md">Contributing</a>
-  <a href="CHANGELOG.md">
+  <a href="CONTRIBUTING.md">Contributing</a> &middot;
+  <a href="CHANGELOG.md">Changelog</a>
 </p>
 
 ---
@@ -187,7 +187,7 @@ npx dg rules
 
 Prints all 26 classification rules with their IDs, names, targets, and descriptions.
 
-> For detailed examples and remediation guidance, see the [full rules documentation](https://diffguardian.space/docs/rules/all).
+> For detailed examples and remediation guidance, see the [full rules documentation](https://diffguardian.vercel.app/docs/rules/all).
 
 ### `dg init` — Project Scaffolding
 
@@ -409,7 +409,7 @@ import type {
 
 ## Documentation
 
-> Visit the official website at [diffguardian.space](https://diffguardian.space) for an overview of the project, and [diffguardian.space/docs](https://diffguardian.space/docs) for full documentation, guides, and examples.
+> Visit the official website at [diffguardian.vercel.app](https://diffguardian.vercel.app) for an overview of the project, and [diffguardian.vercel.app/docs](https://diffguardian.vercel.app/docs) for full documentation, guides, and examples.
 
 The docs site covers:
 
