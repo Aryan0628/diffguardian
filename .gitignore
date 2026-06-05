@@ -26,3 +26,9 @@ diff-guardian-v2.pdf
 
 /vitest.config.ts
 /tests
+
+# Client (Next.js)
+client/node_modules/
+client/.next/
+client/out/
+client/.env.local
