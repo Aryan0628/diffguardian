@@ -9,6 +9,10 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
       duration: 1.2,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       touchMultiplier: 2,
+      prevent: (node) => {
+        return node.classList.contains("docs-sidebar")
+        || node.classList.contains("search-results")
+      }
     });
 
     function raf(time: number) {
