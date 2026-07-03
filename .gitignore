@@ -25,7 +25,6 @@ diff-guardian-v2.pdf
 /grammars/*.wasm
 
 /vitest.config.ts
-/tests
 
 # Client (Next.js)
 client/node_modules/
