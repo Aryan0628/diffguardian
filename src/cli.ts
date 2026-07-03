@@ -228,24 +228,43 @@ function runRules(): void {
 // Command: trace <symbol>
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function runTrace(symbolName: string, repoRoot: string): Promise<void> {
-  console.log(chalk.bold.blue(`\nDiff-Guardian Trace: ${chalk.white(symbolName)}\n`));
-  console.log(chalk.dim('  Scanning repo for importers...\n'));
+async function runTrace(symbolName: string, repoRoot: string, jsonOutput : boolean = false,): Promise<void> {
+  if(!jsonOutput) {
+    console.log(chalk.bold.blue(`\nDiff-Guardian Trace: ${chalk.white(symbolName)}\n`));
+    console.log(chalk.dim('  Scanning repo for importers...\n'));
+  }
 
-  const tracerConfig = createDefaultTracerConfig(repoRoot, 'HEAD');
+  const tracerConfig = createDefaultTracerConfig(
+    repoRoot, 
+    'HEAD',
+    {
+      jsonOutput,
+    }
+  );
   const scanner = new JITScanner(tracerConfig);
 
   try {
     const importers = await scanner.scan(symbolName, '');
 
     if (importers.length === 0) {
-      console.log(chalk.yellow(`  No importers found for "${symbolName}".`));
-      console.log(chalk.dim('  The symbol may not be exported, or no files import it.'));
-      console.log();
+      if (jsonOutput) {
+        console.log(JSON.stringify({
+          symbol: symbolName,
+          importers: [],
+          totalImports: 0,
+          totalFiles: 0,
+        }, null, 2));
+      } else {
+        console.log(chalk.yellow(`  No importers found for "${symbolName}".`));
+        console.log(chalk.dim('  The symbol may not be exported, or no files import it.'));
+        console.log();
+      }
       return;
     }
 
-    console.log(chalk.green.bold(`  📍 ${symbolName} — ${importers.length} importer(s) found\n`));
+    if(!jsonOutput) {
+      console.log(chalk.green.bold(`  📍 ${symbolName} — ${importers.length} importer(s) found\n`));
+    }
 
     // Group by file
     const byFile = new Map<string, typeof importers>();
@@ -253,6 +272,18 @@ async function runTrace(symbolName: string, repoRoot: string): Promise<void> {
       const existing = byFile.get(imp.filePath) || [];
       existing.push(imp);
       byFile.set(imp.filePath, existing);
+    }
+
+    const traceResult = {
+      symbol: symbolName,
+      importers,
+      totalImports: importers.length,
+      totalFiles: byFile.size,
+    };
+
+    if (jsonOutput) {
+      console.log(JSON.stringify(traceResult, null, 2));
+      return;
     }
 
     for (const [file, imps] of byFile) {
@@ -425,13 +456,14 @@ async function runSmartDefault(
 
 async function main() {
   const args = minimist(process.argv.slice(2), {
-    boolean: ['help', 'staged'],
+    boolean: ['help', 'staged', 'json'],
     string: ['report-file'],
     alias: { h: 'help' },
   });
 
   const command    = args._[0];
   const reportFile = args['report-file'] || undefined;
+  const jsonOutput = args.json || false;
 
   // ── Hook context (set by husky hooks via DG_HOOK env var) ────────────────
   const hookContext = (process.env.DG_HOOK as 'pre-push' | 'pre-merge-commit' | 'post-merge') || undefined;
@@ -472,7 +504,7 @@ async function main() {
       console.log('  Example: npx dg trace processPayment\n');
       process.exit(1);
     }
-    await runTrace(symbolName, repoRoot);
+    await runTrace(symbolName, repoRoot, jsonOutput);
     process.exit(0);
   }
 

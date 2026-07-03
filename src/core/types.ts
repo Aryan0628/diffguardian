@@ -386,4 +386,6 @@ export interface TracerConfig {
                                   // if false, also trace warnings for completeness
   repoRoot:         string;       // absolute path to repo root
   headSha:          string;       // git ref for committed content (used by git grep)
+  quiet?:          boolean;
+  jsonOutput?:     boolean;
 }

@@ -387,9 +387,11 @@ export class JITScanner {
     }
 
     if (barrelsProcessed > 0) {
-      console.log(
-        `[scanner] Traversed ${barrelsProcessed} barrel file(s) for "${symbolName}"`
-      );
+      if(!this.config.jsonOutput) {
+        console.log(
+          `[scanner] Traversed ${barrelsProcessed} barrel file(s) for "${symbolName}"`
+        );
+      }
     }
   }
 
@@ -518,6 +520,7 @@ export function createDefaultTracerConfig(
     maxBarrelDepth: 10,
     maxTracerFiles: 100,
     traceOnlyBreaking: true,
+    jsonOutput: false,
     repoRoot,
     headSha,
     ...overrides,
