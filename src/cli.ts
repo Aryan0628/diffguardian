@@ -232,7 +232,7 @@ function runRules(): void {
 // Command: trace <symbol>
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function runTrace(symbolName: string, repoRoot: string, jsonOutput : boolean = false, scope?: string,): Promise<void> {
+async function runTrace(symbolName: string, repoRoot: string, jsonOutput: boolean = false, scope?: string): Promise<void> {
   if(!jsonOutput) {
     console.log(chalk.bold.blue(`\nDiff-Guardian Trace: ${chalk.white(symbolName)}\n`));
     console.log(chalk.dim('  Scanning repo for importers...\n'));
@@ -248,7 +248,7 @@ async function runTrace(symbolName: string, repoRoot: string, jsonOutput : boole
   const scanner = new JITScanner(tracerConfig);
 
   try {
-    const importers = await scanner.scan(symbolName, '', scope,);
+    const importers = await scanner.scan(symbolName, '', scope);
     const scopeProperty = scope ? { scope } : {};
 
     if (importers.length === 0) {

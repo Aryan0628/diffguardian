@@ -13,12 +13,15 @@ export default function CliTrace() {
       <hr className="docs-divider" />
 
       <h2 id="usage">Usage</h2>
-      <CodeBlock code="npx dg trace <symbol-name>" language="bash" />
+      <CodeBlock code="npx dg trace <symbol-name> [--scope <path>]" language="bash" />
 
       <h2 id="examples">Examples</h2>
       <CodeBlock
         code={`# Find all importers of a function
 npx dg trace processPayment
+
+# Find all importers in a subtree
+npx dg trace processPayment --scope src/payments
 
 # Find all importers of an enum
 npx dg trace PaymentStatus
@@ -36,8 +39,9 @@ npx dg trace UserConfig`}
       <ol>
         <li>
           <strong>git grep</strong> — fast initial scan to find candidate files that
-          mention the symbol name. This is O(repo) but runs in milliseconds thanks
-          to git&apos;s built-in index.
+          mention the symbol name. Scope filtering is applied immediately after
+          grep and before any file classification. This is O(repo) but runs in
+          milliseconds thanks to git&apos;s built-in index.
         </li>
         <li>
           <strong>AST confirmation</strong> — parses the import statements of each

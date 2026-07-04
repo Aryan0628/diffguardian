@@ -35,6 +35,7 @@ npx dg help`} language="bash" />
     check --staged     Analyze only staged files
     compare <base>     Compare two git refs
     trace <symbol>     Show all importers and call sites
+               Optional: --scope <path> narrows trace scanning
     rules              List all classification rules
     init               Scaffold config + GitHub Actions workflow
 
@@ -56,6 +57,8 @@ npx dg help`} language="bash" />
     npx dg compare main           Compare main branch to HEAD
     npx dg compare v1.0 v2.0      Compare two tags
     npx dg trace processPayment   Find all importers of a symbol
+    npx dg trace processPayment --scope src/payments
+                    Find importers within a directory
     npx dg rules                  List all 28 classification rules
     npx dg init                   Create config + CI workflow`}
         language="bash"
@@ -72,6 +75,18 @@ npx dg help`} language="bash" />
             <tr><td><code>--version</code></td><td><code>-v</code></td><td>Print the installed version of diff-guard.</td></tr>
             <tr><td><code>--report-file &lt;path&gt;</code></td><td>—</td><td>Write a JSON report to the specified file instead of (or in addition to) terminal output.</td></tr>
             <tr><td><code>--staged</code></td><td>—</td><td>When used with <code>check</code>, analyze only files in the git staging area.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="trace-flags">Trace flags</h2>
+      <div className="docs-table-wrapper">
+        <table className="docs-table">
+          <thead>
+            <tr><th>Flag</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>--scope &lt;path&gt;</code></td><td>Limit <code>trace</code> to files under the provided directory or package path.</td></tr>
           </tbody>
         </table>
       </div>
