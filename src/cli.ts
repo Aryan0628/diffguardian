@@ -14,6 +14,7 @@
  *   check <path>              Scope analysis to a specific directory
  *   compare <base> [head]     Compare two git refs (branches, tags, commits)
  *   trace <symbol>            Show all importers and call sites of a symbol
+ *                             Optional `--scope <path>` narrows the scan
  *   rules                     List all API classification rules
  *   init                      Scaffold config file + GitHub Actions workflow
  *
@@ -103,7 +104,10 @@ ${chalk.bold('Commands:')}
 
   ${chalk.cyan('trace <symbol>')}                   Who uses this function? Shows all importers
                                     and call sites for a symbol across the repo
-                                    Example: npx dg trace processPayment
+                                    Optional: --scope <path> to narrow scanning
+                                    Examples:
+                                      npx dg trace processPayment
+                                      npx dg trace processPayment --scope src/payments
 
   ${chalk.cyan('rules')}                            List all API classification rules
 
@@ -228,7 +232,7 @@ function runRules(): void {
 // Command: trace <symbol>
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function runTrace(symbolName: string, repoRoot: string, jsonOutput : boolean = false,): Promise<void> {
+async function runTrace(symbolName: string, repoRoot: string, jsonOutput: boolean = false, scope?: string): Promise<void> {
   if(!jsonOutput) {
     console.log(chalk.bold.blue(`\nDiff-Guardian Trace: ${chalk.white(symbolName)}\n`));
     console.log(chalk.dim('  Scanning repo for importers...\n'));
@@ -244,12 +248,14 @@ async function runTrace(symbolName: string, repoRoot: string, jsonOutput : boole
   const scanner = new JITScanner(tracerConfig);
 
   try {
-    const importers = await scanner.scan(symbolName, '');
+    const importers = await scanner.scan(symbolName, '', scope);
+    const scopeProperty = scope ? { scope } : {};
 
     if (importers.length === 0) {
       if (jsonOutput) {
         console.log(JSON.stringify({
           symbol: symbolName,
+          ...scopeProperty,
           importers: [],
           totalImports: 0,
           totalFiles: 0,
@@ -276,6 +282,7 @@ async function runTrace(symbolName: string, repoRoot: string, jsonOutput : boole
 
     const traceResult = {
       symbol: symbolName,
+      ...scopeProperty,
       importers,
       totalImports: importers.length,
       totalFiles: byFile.size,
@@ -457,13 +464,14 @@ async function runSmartDefault(
 async function main() {
   const args = minimist(process.argv.slice(2), {
     boolean: ['help', 'staged', 'json'],
-    string: ['report-file'],
+    string: ['report-file', 'scope'],
     alias: { h: 'help' },
   });
 
   const command    = args._[0];
   const reportFile = args['report-file'] || undefined;
   const jsonOutput = args.json || false;
+  const scope      = args.scope || undefined;
 
   // ── Hook context (set by husky hooks via DG_HOOK env var) ────────────────
   const hookContext = (process.env.DG_HOOK as 'pre-push' | 'pre-merge-commit' | 'post-merge') || undefined;
@@ -504,7 +512,7 @@ async function main() {
       console.log('  Example: npx dg trace processPayment\n');
       process.exit(1);
     }
-    await runTrace(symbolName, repoRoot, jsonOutput);
+    await runTrace(symbolName, repoRoot, jsonOutput, scope);
     process.exit(0);
   }
 

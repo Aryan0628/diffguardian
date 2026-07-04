@@ -29,6 +29,10 @@ async function git(cmd: string): Promise<string> {
   return stdout.trim();
 }
 
+function filePaths(importers: Array<{ filePath: string }>): string[] {
+  return importers.map(importer => importer.filePath).sort();
+}
+
 describe('JITScanner — Phase 2', () => {
 
   beforeAll(async () => {
@@ -65,6 +69,30 @@ describe('JITScanner — Phase 2', () => {
       `export { processPayment } from './processor';\n`
     );
 
+
+    // ── Scoped consumers inside src/payments ───────────────────────────
+    const scopedPaymentsDir = path.join(paymentsDir, 'internal');
+    fs.mkdirSync(scopedPaymentsDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(scopedPaymentsDir, 'audit.ts'),
+      `import { processPayment } from '../processor';
+
+export function auditPayment() {
+  processPayment(75, 'USD');
+}
+`
+    );
+
+    fs.writeFileSync(
+      path.join(scopedPaymentsDir, 'summary.ts'),
+      `import { processPayment } from '../payments';
+
+export function summaryPayment() {
+  processPayment(25, 'USD');
+}
+`
+    );
     // ── Consumer of the barrel ──────────────────────────────────────────
     const apiDir = path.join(TEMP_DIR, 'src', 'api');
     fs.mkdirSync(apiDir, { recursive: true });
@@ -191,5 +219,54 @@ describe('JITScanner — Phase 2', () => {
       expect(typeof cartImport.importLine).toBe('number');
       expect(cartImport.importLine).toBeGreaterThan(0);
     }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Scope filtering
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  it('normalizes equivalent scope paths', async () => {
+    const config = createDefaultTracerConfig(TEMP_DIR, 'HEAD');
+    const scanner = new JITScanner(config);
+
+    const scoped = await scanner.scan('processPayment', 'src/payments/processor.ts', 'src/payments');
+    const scopedWithTrailingSlash = await scanner.scan('processPayment', 'src/payments/processor.ts', 'src/payments/');
+    const scopedWithDotPrefix = await scanner.scan('processPayment', 'src/payments/processor.ts', './src/payments');
+
+    const expected = [
+      'src/payments/internal/audit.ts',
+      'src/payments/internal/summary.ts',
+    ];
+
+    expect(filePaths(scoped)).toEqual(expected);
+    expect(filePaths(scopedWithTrailingSlash)).toEqual(expected);
+    expect(filePaths(scopedWithDotPrefix)).toEqual(expected);
+  });
+
+  it('returns only files inside the requested scope', async () => {
+    const config = createDefaultTracerConfig(TEMP_DIR, 'HEAD');
+    const scanner = new JITScanner(config);
+
+    const importers = await scanner.scan('processPayment', 'src/payments/processor.ts', 'src/payments');
+
+    expect(filePaths(importers)).toEqual([
+      'src/payments/internal/audit.ts',
+      'src/payments/internal/summary.ts',
+    ]);
+    expect(filePaths(importers)).not.toContain('src/checkout/cart.ts');
+    expect(filePaths(importers)).not.toContain('src/api/handler.ts');
+  });
+
+  it('keeps the existing behavior when scope is omitted', async () => {
+    const config = createDefaultTracerConfig(TEMP_DIR, 'HEAD');
+    const scanner = new JITScanner(config);
+
+    const importers = await scanner.scan('processPayment', 'src/payments/processor.ts');
+    const files = filePaths(importers);
+
+    expect(files).toContain('src/checkout/cart.ts');
+    expect(files).toContain('src/api/handler.ts');
+    expect(files).toContain('src/payments/internal/audit.ts');
+    expect(files).toContain('src/payments/internal/summary.ts');
   });
 });
