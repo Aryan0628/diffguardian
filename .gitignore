@@ -30,5 +30,7 @@ diff-guardian-v2.pdf
 client/node_modules/
 client/.next/
 client/out/
-client/.env.local.dg-test-report.json
-.dg-test-report.json
+client/.env.local
+
+
+
