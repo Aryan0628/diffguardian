@@ -51,6 +51,7 @@
  */
 
 import { exec } from 'child_process';
+import * as path from 'path';
 import { promisify } from 'util';
 import {
   ImportReference,
@@ -90,10 +91,11 @@ export class JITScanner {
    *
    * @param symbolName — the exported function name (e.g., 'processPayment')
    * @param sourceFile — the file where the symbol is defined (used to filter self-imports)
+   * @param scope — the scope within which to search for the symbol
    */
-  async scan(symbolName: string, sourceFile: string): Promise<ImportReference[]> {
+  async scan(symbolName: string, sourceFile: string, scope?: string): Promise<ImportReference[]> {
     // ── Step 1: Git grep for all files mentioning the symbol ─────────────
-    const grepMatches = await this.gitGrep(symbolName);
+    const grepMatches = this.filterMatchesByScope(await this.gitGrep(symbolName), scope);
 
     if (grepMatches.length === 0) {
       return [];
@@ -133,7 +135,7 @@ export class JITScanner {
     }
 
     // ── Step 3: BFS walk barrel files ────────────────────────────────────
-    await this.walkBarrels(symbolName, importers, barrelQueue, visited);
+    await this.walkBarrels(symbolName, importers, barrelQueue, visited, scope);
 
     return importers;
   }
@@ -345,6 +347,7 @@ export class JITScanner {
     importers: ImportReference[],
     barrelQueue: Array<{ filePath: string; depth: number }>,
     visited: Set<string>,
+    scope?: string,
   ): Promise<void> {
     let barrelsProcessed = 0;
 
@@ -363,7 +366,10 @@ export class JITScanner {
       barrelsProcessed++;
 
       // ── Find consumers of this barrel file ─────────────────────────────
-      const barrelConsumers = await this.findBarrelConsumers(filePath, symbolName);
+      const barrelConsumers = this.filterMatchesByScope(
+        await this.findBarrelConsumers(filePath, symbolName),
+        scope,
+      );
 
       for (const consumer of barrelConsumers) {
         const normalizedPath = this.normalizePath(consumer.filePath);
@@ -480,6 +486,27 @@ export class JITScanner {
    */
   private normalizePath(filePath: string): string {
     return filePath.replace(/\\/g, '/').replace(/\/$/, '').toLowerCase();
+  }
+
+  /**
+   * Normalizes a scope path for comparisons against git grep output.
+   */
+  private normalizeScopePath(scope: string): string {
+    return path.normalize(scope).replace(/\\/g, '/').replace(/\/$/, '').toLowerCase();
+  }
+
+  /**
+   * Keeps only grep matches that fall within the requested scope.
+   */
+  private filterMatchesByScope(matches: GrepMatch[], scope?: string): GrepMatch[] {
+    if (!scope) return matches;
+
+    const normalizedScope = this.normalizeScopePath(scope);
+
+    return matches.filter(match => {
+      const normalizedFile = this.normalizePath(match.filePath);
+      return normalizedFile === normalizedScope || normalizedFile.startsWith(`${normalizedScope}/`);
+    });
   }
 
   /**
