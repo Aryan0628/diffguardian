@@ -11,6 +11,7 @@ import type {
   FunctionSignature,
   InterfaceSignature,
   EnumSignature,
+  TypeAliasSignature,
   Param,
   InterfaceProperty,
   EnumMember,
@@ -84,6 +85,17 @@ export function mockEnumSig(overrides?: Partial<EnumSignature>): EnumSignature {
   return {
     line: 1,
     members: [],
+    exported: true,
+    ...overrides,
+  };
+}
+
+// ── TypeAliasSignature Factory ────────────────────────────────────────────────
+
+export function mockTypeAliasSig(overrides?: Partial<TypeAliasSignature>): TypeAliasSignature {
+  return {
+    line: 1,
+    value: "'a'",
     exported: true,
     ...overrides,
   };
