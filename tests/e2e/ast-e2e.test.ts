@@ -116,6 +116,25 @@ describe('E2E AST Pipeline — WASM + Engine integration', () => {
     expect(changes[0].symbolType).toBe('enum');
   });
 
+  it('✅ Identifies a narrowed union type alias (R29)', async () => {
+    const oldCode = `
+      export type PaymentStatus = 'pending' | 'active' | 'failed';
+    `;
+    const newCode = `
+      export type PaymentStatus = 'pending' | 'failed';
+    `;
+
+    const diff = createMockDiff(oldCode, newCode);
+    const parsedDiffs = await mapper.buildSignatureCache([diff]);
+    const changes = engine.compare(parsedDiffs[0]);
+
+    expect(changes).toHaveLength(1);
+    expect(changes[0].severity).toBe('breaking');
+    expect(changes[0].changeType).toBe('type_alias_changed');
+    expect(changes[0].message).toContain("'active'");
+    expect(changes[0].symbolType).toBe('type_alias');
+  });
+
   it('⚡️ Confirms safe additions are caught without breaking (R10: Symbol Added)', async () => {
     const oldCode = `
       export function fetchUser() {}

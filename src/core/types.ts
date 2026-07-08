@@ -167,6 +167,11 @@ export interface TypeAliasSignature {
   exported:         boolean;
   isDefaultExport?: boolean;
   typeParameters?:  TypeParameter[];  // 'type Node<T> = ...'
+  unionMembers?:    string[];  // present only when `value` is a union of ONLY
+                                // literal types (string/number/boolean/null/undefined).
+                                // Each entry is one member's raw source text,
+                                // e.g. ["'active'", "'inactive'"]. undefined for
+                                // any other shape (object types, generics, etc.)
 }
 
 // ── CallSite ──────────────────────────────────────────────────────────────────

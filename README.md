@@ -61,7 +61,7 @@ $ npx dg compare main feature-branch
 | Capability | Description |
 |---|---|
 | **AST-Powered Analysis** | Tree-Sitter WASM grammars parse your code into structural signatures — not regex |
-| **27 Classification Rules** | Covers parameter changes, return types, generics, visibility, enums, interfaces, and more |
+| **27 Classification Rules** | Covers parameter changes, return types, generics, visibility, enums, interfaces, type aliases, and more |
 | **Blast Radius Tracing** | JIT import scanner and call-site tracer shows every consumer affected by a breaking change |
 | **CI/CD Native** | Auto-detects GitHub Actions and posts PR comments with full audit reports |
 | **Git Hook Enforcement** | Built-in Husky hooks block broken code at `pre-push`, `pre-merge-commit`, and `post-merge` |

@@ -479,7 +479,48 @@ function buildTypeAliasSignature(
     exported:        isExported(aliasNode),
     isDefaultExport: isDefaultExport(aliasNode),
     typeParameters:  extractTypeParameters(aliasNode),
+    unionMembers:    extractUnionLiteralMembers(valueNode),
   };
+}
+
+/**
+ * If the type alias's value is a union of ONLY literal types (string,
+ * number, boolean, null, or undefined literals), returns each member's
+ * raw source text in declaration order, e.g. ["'active'", "'inactive'"].
+ *
+ * Returns undefined for anything else — object types, generics, function
+ * types, type references, or a union that mixes in even one non-literal
+ * member — so R29 can skip non-literal-union aliases without doing any
+ * string parsing of its own.
+ *
+ * IMPORTANT: tree-sitter-typescript parses a union of 3+ members as a
+ * LEFT-RECURSIVE tree of nested `union_type` nodes, not a flat list:
+ *   "'a' | 'b' | 'c'"  ->  union_type(union_type('a', 'b'), 'c')
+ * Verified directly against tree-sitter-typescript@0.21.2 (the version
+ * range this project pins in package.json) — flattenUnionType() recurses
+ * to collect the actual leaf members regardless of union size.
+ */
+function extractUnionLiteralMembers(valueNode: SyntaxNode): string[] | undefined {
+  // Only actual unions should populate unionMembers.
+  if (valueNode.type !== 'union_type') {
+    return undefined;
+  }
+
+  const leaves = flattenUnionType(valueNode);
+
+  if (!leaves.every(n => n.type === 'literal_type')) {
+    return undefined;
+  }
+
+  return leaves.map(n => n.text);
+}
+
+/** Recursively flattens tree-sitter's nested union_type structure into leaf nodes. */
+function flattenUnionType(node: SyntaxNode): SyntaxNode[] {
+  if (node.type === 'union_type') {
+    return node.namedChildren.flatMap(flattenUnionType);
+  }
+  return [node];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

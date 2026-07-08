@@ -125,7 +125,7 @@ diffguardian/
 │   │       ├── index.ts        # Rule barrel file
 │   │       ├── R01_param_removed.ts
 │   │       ├── R02_param_reordered.ts
-│   │       ├── ...             # 26 rules total
+│   │       ├── ...             # 27 rules total
 │   │       └── R28_exported.ts
 │   │
 │   ├── reporter/
@@ -217,7 +217,7 @@ export const yourRule: FunctionRule = {
   name: "Your Rule Name",
   description: "What this rule detects and why it matters.",
   languages: "all", // or specify: ['typescript', 'python']
-  target: "function", // 'function' | 'interface' | 'enum'
+  target: "function", // 'function' | 'interface' | 'enum' | 'type_alias'
 
   check(oldSig, newSig): RuleResult | null {
     // Compare oldSig and newSig
@@ -237,7 +237,7 @@ export const yourRule: FunctionRule = {
 
 Before submitting a new rule, ensure the following:
 
-1. Assign the next available rule ID (`R29`, `R30`, etc.)
+1. Assign the next available rule ID (`R30`, `R31`, etc.)
 2. Create the rule file in `src/classifier/rules/`
 3. Export it from `src/classifier/rules/index.ts`
 4. Write tests covering both positive and negative cases

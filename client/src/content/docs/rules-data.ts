@@ -989,6 +989,51 @@ export function calculateTax(amount: number): number {
     ],
     relatedRules: ["R08", "R20"],
   },
+  "R29": {
+    id: "R29",
+    name: "Type Alias Union Narrowed",
+    severity: "breaking",
+    target: "type_alias",
+    languages: ["TypeScript"],
+    summary: "Flags when a string/number/boolean literal union type alias loses one of its members. Consumers using exhaustive switch statements or direct literal comparisons against the removed value will fail to compile or silently mishandle it.",
+    whyItMatters: `Literal union type aliases are TypeScript's version of a closed, enumerable set of allowed values — used constantly for status flags, discriminated unions, and API response shapes. Removing a member is exactly as breaking as removing an enum member (R27): any \`switch\` statement written to be exhaustive over the union now has a branch the type checker no longer knows about, and any code still producing the removed value silently produces something the type system no longer expects.`,
+    howItWorks: `The TypeScript translator (\`buildTypeAliasSignature()\` in \`src/parsers/translators/typescript.ts\`) inspects the alias's AST node. If it's a union where every member is a literal type (string, number, boolean, null, or undefined), it extracts each member's raw text into \`unionMembers: string[]\` — recursively flattening tree-sitter's nested \`union_type\` structure, since a union of 3+ members parses as a left-recursive tree, not a flat list.
+
+The rule then simply diffs \`oldSig.unionMembers\` against \`newSig.unionMembers\`, exactly like R27 diffs enum members:
+1. If a member's raw text is missing from the new union — it was removed (or renamed, which looks identical at this level)
+
+Aliases that aren't simple literal unions (generics, object types, mapped/conditional types, or a union that mixes in even one non-literal member) have \`unionMembers: undefined\` and are skipped entirely — no false positives on structural types.`,
+    beforeCode: `// payment.ts
+export type PaymentStatus = 'pending' | 'active' | 'failed';
+
+function describeStatus(status: PaymentStatus): string {
+  switch (status) {
+    case 'pending': return 'Waiting for confirmation';
+    case 'active':  return 'Payment successful';
+    case 'failed':  return 'Payment failed';
+  }
+}`,
+    afterCode: `// payment.ts (BREAKING — 'active' removed)
+export type PaymentStatus = 'pending' | 'failed';
+
+// describeStatus() above no longer handles every case — the 'active'
+// branch is now dead code, and any caller still receiving 'active' at
+// runtime falls through with no matching case.`,
+    beforeLabel: "Before",
+    afterLabel: "After (member removed)",
+    cliOutput: `$ npx dg check
+
+  [BREAKING] PaymentStatus (type_alias_changed)
+  src/payment.ts:2
+  Union type alias lost member(s) 'active'. Consumers using exhaustive switch statements or direct literal comparisons against these values will fail to compile or silently mishandle them.`,
+    realWorldScenario: `A team renames \`'active'\` to \`'live'\` in a status union type alias without updating every \`switch\` statement across the codebase. TypeScript's exhaustiveness checking only catches this if the switch has a \`never\`-typed default branch — plenty of real code doesn't. Diff Guardian catches the contract change directly, before it ships.`,
+    edgeCases: [
+      "Renaming a literal member is indistinguishable from remove+add at this level — flagged as a removal, same convention as R27 for enums",
+      "Unions mixing a literal with a non-literal type (e.g. 'active' | SomeInterface) are not analyzed — unionMembers stays undefined",
+      "Only TypeScript is covered — Go and Rust also have type aliases, but neither uses '|' union-of-literals syntax for them",
+    ],
+    relatedRules: ["R27"],
+  },
 };
 
 /** Return ordered list of rule IDs */

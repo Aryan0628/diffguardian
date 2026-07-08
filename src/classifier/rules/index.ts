@@ -24,4 +24,4 @@ export * from './R25_interface_property_required';
 export * from './R26_interface_property_removed';
 export * from './R27_enum_changed';
 export * from './R28_exported';
-export * from './R29_union_literal_removed';
+export * from './R29_type_alias_union_narrowed';

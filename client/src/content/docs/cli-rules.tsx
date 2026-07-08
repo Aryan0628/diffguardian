@@ -37,6 +37,7 @@ const allRules: RuleEntry[] = [
   { id: "R26", name: "Interface Prop Removed", target: "interface", severity: "breaking", languages: "TS, Java, Go, Rust", description: "A property is completely deleted from an interface. Consumers relying on this property will fail.", example: "{ name: string; age: number } -> { name: string }" },
   { id: "R27", name: "Enum Member Changed", target: "enum", severity: "breaking", languages: "TS, Java, Rust", description: "An enum member is removed, renamed, or has its value modified. Downstream references will break or silently corrupt data.", example: "enum Status { Active = 1, Pending = 2 } -> enum Status { Active = 1 }" },
   { id: "R28", name: "Visibility Widened", target: "function", severity: "safe", languages: "All", description: "A previously internal symbol becomes exported. The API surface expands, but existing callers are unaffected.", example: "function helper() -> export function helper()" },
+  { id: "R29", name: "Type Alias Union Narrowed", target: "type_alias", severity: "breaking", languages: "TypeScript", description: "A string/number/boolean literal union type alias loses one of its members. Exhaustive switch statements and literal comparisons against the removed value will fail to compile or silently mishandle it.", example: "type Status = 'active' | 'inactive' -> type Status = 'active'" },
 ];
 
 function SeverityBadge({ severity }: { severity: string }) {
@@ -118,6 +119,11 @@ export default function CliRules() {
       <h2 id="enum-rules">Enum rules</h2>
       <div className="docs-rules-list">
         {allRules.filter((r) => r.target === "enum").map(renderRuleCard)}
+      </div>
+
+      <h2 id="type-alias-rules">Type alias rules</h2>
+      <div className="docs-rules-list">
+        {allRules.filter((r) => r.target === "type_alias").map(renderRuleCard)}
       </div>
 
       <h2 id="related">Related</h2>
