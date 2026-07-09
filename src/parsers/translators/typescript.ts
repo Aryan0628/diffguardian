@@ -6,7 +6,7 @@
  * Receives a tree-sitter Tree, returns Map<string, AnySignature>.
  *
  * Covers every TypeScript/JavaScript construct that produces a public API:
- *  - Top-level functions            (function_declaration)
+ *  - Top-level functions            (function_declaration, generator_function_declaration)
  *  - Class methods                  (method_definition)
  *  - Interface method signatures    (method_signature)
  *  - Exported arrow functions       (lexical_declaration → arrow_function)
@@ -58,6 +58,12 @@ import {
 /** Q1: Top-level functions, class methods, interface method signatures */
 const FN_QUERY_SRC = `
   (function_declaration
+    name: (identifier) @name
+    parameters: (formal_parameters) @params
+    return_type: (type_annotation)? @return
+  ) @fn
+
+  (generator_function_declaration
     name: (identifier) @name
     parameters: (formal_parameters) @params
     return_type: (type_annotation)? @return

@@ -38,6 +38,7 @@ const allRules: RuleEntry[] = [
   { id: "R27", name: "Enum Member Changed", target: "enum", severity: "breaking", languages: "TS, Java, Rust", description: "An enum member is removed, renamed, or has its value modified. Downstream references will break or silently corrupt data.", example: "enum Status { Active = 1, Pending = 2 } -> enum Status { Active = 1 }" },
   { id: "R28", name: "Visibility Widened", target: "function", severity: "safe", languages: "All", description: "A previously internal symbol becomes exported. The API surface expands, but existing callers are unaffected.", example: "function helper() -> export function helper()" },
   { id: "R29", name: "Type Alias Union Narrowed", target: "type_alias", severity: "breaking", languages: "TypeScript", description: "A string/number/boolean literal union type alias loses one of its members. Exhaustive switch statements and literal comparisons against the removed value will fail to compile or silently mishandle it.", example: "type Status = 'active' | 'inactive' -> type Status = 'active'" },
+  { id: "R30", name: "Generator Function Toggle", target: "function", severity: "breaking", languages: "TS, Python", description: "A function adds or removes the generator modifier (function*, yield). The calling convention changes completely — callers receive an iterator instead of a direct value, or vice versa.", example: "function nextId() -> function* nextId()" },
 ];
 
 function SeverityBadge({ severity }: { severity: string }) {

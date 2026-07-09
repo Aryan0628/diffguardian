@@ -33,7 +33,7 @@ The result? Silent regressions, broken CI/CD pipelines, and painful merge resolu
 ### The Solution
 Traditional diffs show **what changed**. Diff Guardian shows **what breaks**.
 
-Diff Guardian acts as an automated safety net. Using WASM-compiled Tree-Sitter grammars, it parses your code into abstract syntax tree (AST) signatures, compares the before and after states across any branch, and evaluates every diff against **27 strict production rules**. It then traces every call site across your ecosystem to show **exactly who is affected** before you merge or push.
+Diff Guardian acts as an automated safety net. Using WASM-compiled Tree-Sitter grammars, it parses your code into abstract syntax tree (AST) signatures, compares the before and after states across any branch, and evaluates every diff against **28 strict production rules**. It then traces every call site across your ecosystem to show **exactly who is affected** before you merge or push.
 
 ```
 $ npx dg compare main feature-branch
@@ -61,7 +61,7 @@ $ npx dg compare main feature-branch
 | Capability | Description |
 |---|---|
 | **AST-Powered Analysis** | Tree-Sitter WASM grammars parse your code into structural signatures — not regex |
-| **27 Classification Rules** | Covers parameter changes, return types, generics, visibility, enums, interfaces, type aliases, and more |
+| **28 Classification Rules** | Covers parameter changes, return types, generics, visibility, enums, interfaces, type aliases, and more |
 | **Blast Radius Tracing** | JIT import scanner and call-site tracer shows every consumer affected by a breaking change |
 | **CI/CD Native** | Auto-detects GitHub Actions and posts PR comments with full audit reports |
 | **Git Hook Enforcement** | Built-in Husky hooks block broken code at `pre-push`, `pre-merge-commit`, and `post-merge` |
@@ -185,7 +185,7 @@ Shows every file that imports the given symbol and where it is used:
 npx dg rules
 ```
 
-Prints all 27 classification rules with their IDs, names, targets, and descriptions.
+Prints all 28 classification rules with their IDs, names, targets, and descriptions.
 
 > For detailed examples and remediation guidance, see the [full rules documentation](https://diffguardian.vercel.app/docs/rules/all).
 

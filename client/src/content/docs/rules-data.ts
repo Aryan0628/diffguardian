@@ -1034,6 +1034,44 @@ export type PaymentStatus = 'pending' | 'failed';
     ],
     relatedRules: ["R27"],
   },
+  "R30": {
+    id: "R30",
+    name: "Generator Function Toggle",
+    severity: "breaking",
+    target: "function",
+    languages: ["TypeScript", "Python"],
+    summary: "Flags when a function adds or removes the generator modifier (function*, yield). The calling convention changes completely — a generator returns an iterator, a regular function returns its value directly. Only TypeScript and Python have a generator-function construct; Java, Go, and Rust are not analyzed by this rule.",
+    whyItMatters: `A generator function's return value is an iterator object, not the value(s) the function computes internally. Callers of a regular function do \`const result = fn()\` and use \`result\` immediately. Callers of a generator instead do \`for (const x of fn())\` or \`fn().next()\`. Toggling this modifier in either direction silently breaks every existing call site: converting to a generator makes \`result\` become an iterator instead of the expected value, and converting away from a generator breaks any code that was iterating over it.`,
+    howItWorks: `The translator stamps an \`isGenerator: boolean\` flag on every \`FunctionSignature\` by detecting the \`function*\` syntax (TypeScript/JavaScript) or the language's equivalent construct during AST parsing. The rule normalizes \`undefined\` to \`false\` and compares \`oldSig.isGenerator\` against \`newSig.isGenerator\`. Any change in either direction fires as breaking — there is no safe direction, unlike sync/async where the split is asymmetric.`,
+    beforeCode: `// ids.ts
+export function nextId(): number {
+  return counter++;
+}`,
+    afterCode: `// ids.ts (BREAKING — now a generator)
+export function* nextId(): Generator<number> {
+  while (true) {
+    yield counter++;
+  }
+}
+
+// caller.ts — BREAKS
+const id = nextId(); // id is now a Generator object, not a number`,
+    beforeLabel: "Before",
+    afterLabel: "After (converted to generator)",
+    cliOutput: `$ npx dg check
+
+  [BREAKING] nextId (modifier_changed)
+  src/ids.ts:1
+  Function was converted from a regular function to a generator. Callers relying on the previous calling convention (direct return value vs. the iterator protocol) will break.`,
+    realWorldScenario: `A maintainer refactors a one-shot value factory into a generator to support lazy, infinite sequences, without realizing every existing caller destructures the return value directly. The refactor compiles fine in isolation — the break only shows up at every call site, often as a confusing "not a number" runtime error far from where the actual change happened.`,
+    edgeCases: [
+      "isGenerator undefined on both sides (most functions) is normalized to false — no false positive",
+      "Async generators (async function*) still only toggle the isGenerator flag; combine with R11/R21 output to see the full picture when both modifiers change at once",
+      "Java, Go, and Rust have no generator-function construct — their translators set isGenerator: undefined unconditionally, so this rule never fires for those languages by design, not by omission",
+      "TypeScript detects generators via a `*` token on the function node; Python detects them by scanning the function body for a `yield` expression",
+    ],
+    relatedRules: ["R11", "R17", "R21"],
+  },
 };
 
 /** Return ordered list of rule IDs */

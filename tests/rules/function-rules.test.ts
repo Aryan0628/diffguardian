@@ -37,6 +37,7 @@ import { returnNeverRule }             from '../../src/classifier/rules/R22_retu
 import { defaultValueChangedRule }     from '../../src/classifier/rules/R23_default_value_changed';
 import { constructorChangedRule }      from '../../src/classifier/rules/R24_constructor_changed';
 import { exportedRule }                from '../../src/classifier/rules/R28_exported';
+import { generatorToggledRule }        from '../../src/classifier/rules/R30_generator_toggle';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // R01: Parameter Removed
@@ -1384,6 +1385,53 @@ describe('R28 — exportedRule', () => {
     const newSig = mockFnSig({ exported: false });
 
     const result = exportedRule.check(oldSig, newSig);
+
+    expect(result).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R30: Generator Function Toggle
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('R30 — generatorToggledRule', () => {
+
+  it('✅ True Positive: flags regular function → generator', () => {
+    const oldSig = mockFnSig({ isGenerator: false });
+    const newSig = mockFnSig({ isGenerator: true });
+
+    const result = generatorToggledRule.check(oldSig, newSig);
+
+    expect(result).not.toBeNull();
+    expect(asSingle(result).severity).toBe('breaking');
+    expect(asSingle(result).changeType).toBe('modifier_changed');
+    expect(asSingle(result).message).toContain('generator');
+  });
+
+  it('✅ True Positive: flags generator → regular function', () => {
+    const oldSig = mockFnSig({ isGenerator: true });
+    const newSig = mockFnSig({ isGenerator: false });
+
+    const result = generatorToggledRule.check(oldSig, newSig);
+
+    expect(result).not.toBeNull();
+    expect(asSingle(result).severity).toBe('breaking');
+    expect(asSingle(result).message).toContain('regular function');
+  });
+
+  it('🚫 False Positive: both generator must return null', () => {
+    const sig = mockFnSig({ isGenerator: true });
+
+    const result = generatorToggledRule.check(sig, sig);
+
+    expect(result).toBeNull();
+  });
+
+  it('🔲 Edge Case: isGenerator undefined on both sides must not throw and must return null', () => {
+    const oldSig = mockFnSig({});
+    const newSig = mockFnSig({});
+
+    const result = generatorToggledRule.check(oldSig, newSig);
 
     expect(result).toBeNull();
   });
