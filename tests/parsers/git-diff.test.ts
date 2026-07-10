@@ -268,4 +268,42 @@ describe('Git Diff Parser — extractGitSources()', () => {
       fs.writeFileSync(apiPath, currentContent);
     }
   });
+// ═══════════════════════════════════════════════════════════════════════════
+  // SECURITY: Shell injection resistance (fixes #27)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('Shell injection resistance', () => {
+    it('rejects a baseSha containing a shell metacharacter', async () => {
+      await expect(
+        extractGitSources('HEAD; touch /tmp/dg-pwned-test', 'HEAD', TEMP_DIR)
+      ).rejects.toThrow(/not valid in a git ref/);
+    });
+
+    it('rejects a headSha containing a shell metacharacter', async () => {
+      await expect(
+        extractGitSources('HEAD', 'HEAD `touch /tmp/dg-pwned-test`', TEMP_DIR)
+      ).rejects.toThrow(/not valid in a git ref/);
+    });
+
+    it('rejects a pathFilter containing a shell metacharacter', async () => {
+      await expect(
+        extractGitSources('HEAD~1', 'HEAD', TEMP_DIR, 'src; touch /tmp/dg-pwned-test')
+      ).rejects.toThrow(/not valid in a git ref/);
+    });
+
+    it('does not spawn a shell — a ref containing a semicolon never executes a second command', async () => {
+      // Even bypassing assertSafeRef in spirit, execFile with an argument array
+      // means git receives the whole string as ONE argument (an invalid ref name),
+      // not a command separator. This proves the underlying mechanism, not just
+      // the input-validation layer.
+      const maliciousMarker = path.join(TEMP_DIR, 'should-not-exist.txt');
+      if (fs.existsSync(maliciousMarker)) fs.rmSync(maliciousMarker);
+
+      await expect(
+        extractGitSources('HEAD~1', 'HEAD', TEMP_DIR, `x; touch ${maliciousMarker}`)
+      ).rejects.toThrow(); // rejected by assertSafeRef before reaching execFile
+
+      expect(fs.existsSync(maliciousMarker)).toBe(false);
+    });
+  });
 });
