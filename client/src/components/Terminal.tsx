@@ -102,7 +102,7 @@ const COMMANDS: Record<string, TermLine[]> = {
     { text: "  R25 - Interface Prop Required [Target: interface]", type: "trace" },
     { text: "  R26 - Interface Prop Removed  [Target: interface]", type: "trace" },
     { text: "  R27 - Enum Member Changed    [Target: enum]", type: "trace" },
-    { text: "  ... and 19 more rules", type: "info" },
+    { text: "  ... and 20 more rules", type: "info" },
   ],
 
   "npx dg init": [

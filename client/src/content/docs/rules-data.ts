@@ -1072,6 +1072,45 @@ const id = nextId(); // id is now a Generator object, not a number`,
     ],
     relatedRules: ["R11", "R17", "R21"],
   },
+  "R31": {
+    id: "R31",
+    name: "Abstract Modifier Added",
+    severity: "breaking",
+    target: "function",
+    languages: ["All languages"],
+    summary: "Flags when a concrete method gains the `abstract` modifier. Every subclass that inherited the previous default implementation without overriding it will fail to compile, since that default no longer exists.",
+    whyItMatters: `An abstract method has no body — it's a contract every subclass must fulfill. When a previously concrete method becomes abstract, any subclass that relied on the inherited default implementation loses it instantly. The subclass compiles fine in isolation right up until this change; the break appears at every subclass definition, not at the method itself.`,
+    howItWorks: `The translator stamps an \`isAbstract: boolean\` flag on every \`FunctionSignature\` by detecting the \`abstract\` modifier keyword (TypeScript, Java) or the language's equivalent construct (Python's \`@abstractmethod\`, Go/Rust trait conventions) during AST parsing. The rule normalizes \`undefined\` to \`false\` and only fires when the modifier is newly added (\`false\` → \`true\`). Removing \`abstract\` (\`true\` → \`false\`) is intentionally not flagged — it only adds a usable default implementation, which breaks nothing.`,
+    beforeCode: `// service.ts
+export abstract class Service {
+  process(): void {
+    console.log('default behavior');
+  }
+}`,
+    afterCode: `// service.ts (BREAKING — method is now abstract)
+export abstract class Service {
+  abstract process(): void;
+}
+
+// subclass.ts — BREAKS
+export class MyService extends Service {}
+// Error: non-abstract class 'MyService' does not implement
+// inherited abstract member 'process'.`,
+    beforeLabel: "Before",
+    afterLabel: "After (converted to abstract)",
+    cliOutput: `$ npx dg check
+
+  [BREAKING] Service#process (modifier_changed)
+  src/service.ts:2
+  Method was made abstract. Every existing subclass that does not already override this method will fail to compile, since a concrete implementation is no longer inherited.`,
+    realWorldScenario: `A maintainer decides a base class method should no longer have a sensible default and marks it abstract to force every subclass to think about its own implementation. The change compiles cleanly in the file where it was made — the compiler errors only appear in every downstream subclass file, often in a different package or repository the maintainer never opened.`,
+    edgeCases: [
+      "isAbstract undefined on both sides (the vast majority of methods) is normalized to false — no false positive",
+      "Only the concrete → abstract direction fires; abstract → concrete is safe and silent by design",
+      "Applies only to methods (functions with a className) in practice, since free functions never receive isAbstract: true from any translator",
+    ],
+    relatedRules: ["R17", "R30"],
+  },
 };
 
 /** Return ordered list of rule IDs */
