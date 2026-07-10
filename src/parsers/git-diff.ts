@@ -23,16 +23,24 @@
  * - Concurrency & Scalability: Processes file extractions in parallel with `Promise.allSettled`
  *   and manages large diffs with a 10MB memory buffer.
  *
+ * SECURITY NOTE (fixes #27):
+ * All git invocations use execFile with argument arrays, never exec with
+ * concatenated strings. execFile does not spawn a shell, so ref names and
+ * path filters can never be reinterpreted as shell commands regardless of
+ * their contents. A lightweight format check on baseSha/headSha is kept as
+ * a defense-in-depth layer even though execFile alone neutralizes the
+ * shell-injection vector.
+ *
  * @module SourceProvider
  */
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
 import { FileDiff } from '../core/types';
 import { isTargetFile } from '../core/utils';
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // 10MB limit
 const MAX_BUFFER = 10 * 1024 * 1024;
@@ -47,6 +55,19 @@ export const WORKING_TREE = 'WORKING_TREE';
 /** When headSha is STAGED, read "new" source from the git index. */
 export const STAGED = 'STAGED';
 
+/**
+ * Defense-in-depth check — rejects refs containing characters that have no
+ * business in a git ref/SHA/branch name but are meaningful to a shell.
+ * This is a secondary safeguard; execFile already prevents shell interpretation
+ * regardless of this check, since it never invokes a shell in the first place.
+ */
+function assertSafeRef(value: string, label: string): void {
+  if (/[;|`$&\n\r]/.test(value)) {
+    throw new Error(
+      `[git-diff] ${label} contains characters not valid in a git ref: "${value}"`,
+    );
+  }
+}
 
 /**
  * Extracts the full source text for every changed file between two Git refs.
@@ -72,27 +93,38 @@ export async function extractGitSources(
     throw new Error('[git-diff] baseSha and headSha are required');
   }
 
-  // ── Build the git diff command based on mode ────────────────────────────
-  let diffCmd: string;
+  // Defense-in-depth — reject obviously shell-hostile input up front,
+  // even though execFile below never reaches a shell regardless.
+  assertSafeRef(baseSha, 'baseSha');
+  if (headSha !== WORKING_TREE && headSha !== STAGED) {
+    assertSafeRef(headSha, 'headSha');
+  }
+  if (pathFilter) {
+    assertSafeRef(pathFilter, 'pathFilter');
+  }
+
+  // ── Build the git diff argument array based on mode ─────────────────────
+  let diffArgs: string[];
 
   if (headSha === WORKING_TREE) {
     // Compare baseSha against working tree (uncommitted files)
-    diffCmd = `git diff --name-status ${baseSha}`;
+    diffArgs = ['diff', '--name-status', baseSha];
   } else if (headSha === STAGED) {
     // Compare baseSha against staged index (git add'd files)
-    diffCmd = `git diff --name-status --cached ${baseSha}`;
+    diffArgs = ['diff', '--name-status', '--cached', baseSha];
   } else {
     // Standard: compare two committed refs
-    diffCmd = `git diff --name-status ${baseSha} ${headSha}`;
+    diffArgs = ['diff', '--name-status', baseSha, headSha];
   }
 
   // Append path filter if provided (e.g., -- src/payments)
   if (pathFilter) {
-    diffCmd += ` -- ${pathFilter}`;
+    diffArgs.push('--', pathFilter);
   }
 
-  const { stdout: nameStatus } = await execAsync(
-    diffCmd,
+  const { stdout: nameStatus } = await execFileAsync(
+    'git',
+    diffArgs,
     { maxBuffer: MAX_BUFFER, cwd: repoRoot },
   );
 
@@ -208,6 +240,10 @@ async function getNewSource(
 /**
  * Fetches the full file content at a given Git ref.
  * Distinguishes expected misses (file absent at that ref) from real failures.
+ *
+ * Uses execFile with the ref built as a single "sha:path" argument — git
+ * itself parses this colon-joined form, so no shell is ever involved and
+ * no string concatenation into a shell command occurs.
  */
 async function runGitShow(
   sha:      string,
@@ -218,8 +254,9 @@ async function runGitShow(
   const ref = sha ? `${sha}:${filePath}` : filePath;
 
   try {
-    const { stdout } = await execAsync(
-      `git show ${ref}`,
+    const { stdout } = await execFileAsync(
+      'git',
+      ['show', ref],
       { maxBuffer: MAX_BUFFER, cwd: repoRoot },
     );
     return stdout;
