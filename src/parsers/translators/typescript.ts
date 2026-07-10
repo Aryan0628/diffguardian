@@ -55,8 +55,12 @@ import {
 // Queries
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Q1: Top-level functions, class methods, interface method signatures */
-const FN_QUERY_SRC = `
+/**
+ * Q1 (TypeScript/TSX): Top-level functions, class methods, interface method
+ * signatures. References `type_annotation`, which only exists in the
+ * TypeScript/TSX grammars.
+ */
+const FN_QUERY_SRC_TS = `
   (function_declaration
     name: (identifier) @name
     parameters: (formal_parameters) @params
@@ -82,8 +86,33 @@ const FN_QUERY_SRC = `
   ) @fn
 `;
 
-/** Q2: Exported arrow functions assigned to const/let */
-const ARROW_QUERY_SRC = `
+/**
+ * Q1 (plain JavaScript/JSX): same shapes, minus `return_type`/`type_annotation`
+ * and `method_signature` (an interface/type-literal construct that doesn't
+ * exist in plain JS). Referencing an unknown node name in a Query throws
+ * "Bad node name '...'" at COMPILE time, not match time — this is the root
+ * cause of #23's .jsx crash, since the old single query set was TS-only and
+ * got compiled against the plain JavaScript grammar for .js/.jsx files.
+ */
+const FN_QUERY_SRC_JS = `
+  (function_declaration
+    name: (identifier) @name
+    parameters: (formal_parameters) @params
+  ) @fn
+
+  (generator_function_declaration
+    name: (identifier) @name
+    parameters: (formal_parameters) @params
+  ) @fn
+
+  (method_definition
+    name: (property_identifier) @name
+    parameters: (formal_parameters) @params
+  ) @fn
+`;
+
+/** Q2 (TypeScript/TSX): Exported arrow functions assigned to const/let */
+const ARROW_QUERY_SRC_TS = `
   (lexical_declaration
     (variable_declarator
       name: (identifier) @name
@@ -95,8 +124,23 @@ const ARROW_QUERY_SRC = `
   ) @decl
 `;
 
-/** Q3: Class constructors — required for R24 */
-const CTOR_QUERY_SRC = `
+/** Q2 (plain JavaScript/JSX): no return_type — see FN_QUERY_SRC_JS note. */
+const ARROW_QUERY_SRC_JS = `
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier) @name
+      value: (arrow_function
+        parameters: (formal_parameters) @params
+      ) @fn
+    )
+  ) @decl
+`;
+
+/**
+ * Q3 (TypeScript/TSX): Class constructors — required for R24.
+ * Class name node is `type_identifier` in the TS/TSX grammars.
+ */
+const CTOR_QUERY_SRC_TS = `
   (class_declaration
     name: (type_identifier) @class_name
     body: (class_body
@@ -109,7 +153,29 @@ const CTOR_QUERY_SRC = `
   )
 `;
 
-/** Q4: Interface declarations — required for R25/R26 */
+/**
+ * Q3 (plain JavaScript/JSX): class name node is plain `identifier` — the
+ * `type_identifier` node type is a TypeScript-grammar rename and does not
+ * exist in plain JS, so this is a second query needed purely for JS/JSX.
+ */
+const CTOR_QUERY_SRC_JS = `
+  (class_declaration
+    name: (identifier) @class_name
+    body: (class_body
+      (method_definition
+        name: (property_identifier) @ctor_marker
+        (#eq? @ctor_marker "constructor")
+        parameters: (formal_parameters) @params
+      ) @fn
+    )
+  )
+`;
+
+/**
+ * Q4: Interface declarations — required for R25/R26.
+ * TypeScript-only construct. Not compiled for plain JS/JSX — interfaces
+ * don't exist there, so there's nothing to skip gracefully, only to omit.
+ */
 const INTERFACE_QUERY_SRC = `
   (interface_declaration
     name: (type_identifier) @name
@@ -117,7 +183,7 @@ const INTERFACE_QUERY_SRC = `
   ) @iface
 `;
 
-/** Q5: Enum declarations — required for R27 */
+/** Q5: Enum declarations — required for R27. TypeScript-only, JS-omitted. */
 const ENUM_QUERY_SRC = `
   (enum_declaration
     name: (identifier) @name
@@ -125,14 +191,13 @@ const ENUM_QUERY_SRC = `
   ) @enum
 `;
 
-/** Q6: Type alias declarations */
+/** Q6: Type alias declarations. TypeScript-only, JS-omitted. */
 const TYPE_ALIAS_QUERY_SRC = `
   (type_alias_declaration
     name: (type_identifier) @name
     value: (_) @value
   ) @alias
 `;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Query cache — compile once per Language, reuse forever
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,9 +212,10 @@ interface CompiledQueries {
   fn:    Query;
   arrow: Query;
   ctor:  Query;
-  iface: Query;
-  enum:  Query;
-  alias: Query;
+  /** null for plain JS/JSX — these constructs don't exist outside TypeScript */
+  iface: Query | null;
+  enum:  Query | null;
+  alias: Query | null;
 }
 
 let cachedLanguage: Language | null = null;
@@ -162,7 +228,7 @@ let cachedQueries: CompiledQueries | null = null;
  * In production, ASTMapper uses a single Language instance per grammar
  * (see ASTMapper.languages Map), so this compiles exactly once.
  */
-function getQueries(language: Language): CompiledQueries {
+function getQueries(language: Language, isTypeScriptFlavor: boolean): CompiledQueries {
   if (cachedQueries && cachedLanguage === language) {
     return cachedQueries;
   }
@@ -172,12 +238,14 @@ function getQueries(language: Language): CompiledQueries {
 
   cachedLanguage = language;
   cachedQueries = {
-    fn:    new Query(language, FN_QUERY_SRC),
-    arrow: new Query(language, ARROW_QUERY_SRC),
-    ctor:  new Query(language, CTOR_QUERY_SRC),
-    iface: new Query(language, INTERFACE_QUERY_SRC),
-    enum:  new Query(language, ENUM_QUERY_SRC),
-    alias: new Query(language, TYPE_ALIAS_QUERY_SRC),
+    fn:    new Query(language, isTypeScriptFlavor ? FN_QUERY_SRC_TS : FN_QUERY_SRC_JS),
+    arrow: new Query(language, isTypeScriptFlavor ? ARROW_QUERY_SRC_TS : ARROW_QUERY_SRC_JS),
+    ctor:  new Query(language, isTypeScriptFlavor ? CTOR_QUERY_SRC_TS : CTOR_QUERY_SRC_JS),
+    // TS-only constructs — never compiled for plain JS/JSX, avoiding the
+    // "Bad node name" crash for node types that simply don't exist there.
+    iface: isTypeScriptFlavor ? new Query(language, INTERFACE_QUERY_SRC) : null,
+    enum:  isTypeScriptFlavor ? new Query(language, ENUM_QUERY_SRC) : null,
+    alias: isTypeScriptFlavor ? new Query(language, TYPE_ALIAS_QUERY_SRC) : null,
   };
 
   return cachedQueries;
@@ -193,9 +261,9 @@ export function disposeQueries(): void {
     cachedQueries.fn.delete();
     cachedQueries.arrow.delete();
     cachedQueries.ctor.delete();
-    cachedQueries.iface.delete();
-    cachedQueries.enum.delete();
-    cachedQueries.alias.delete();
+    cachedQueries.iface?.delete();
+    cachedQueries.enum?.delete();
+    cachedQueries.alias?.delete();
     cachedQueries = null;
     cachedLanguage = null;
   }
@@ -215,6 +283,7 @@ export function disposeQueries(): void {
 export function extractTSSignatures(
   tree:     Tree,
   language: Language,
+  ext:      string, // 'ts' | 'tsx' | 'js' | 'jsx' — selects the query flavor
 ): Map<string, AnySignature> {
 
   const result = new Map<string, AnySignature>();
@@ -222,9 +291,10 @@ export function extractTSSignatures(
   // Track overload counts per function name
   const overloadCounts = new Map<string, number>();
 
-  // Compile-once, reuse-forever query cache
-  const q = getQueries(language);
-
+  // Only ts/tsx compile the TS-only query set (interfaces, enums, type
+  // aliases, type_annotation captures). Plain js/jsx get the JS-safe subset.
+  const isTypeScriptFlavor = ext === 'ts' || ext === 'tsx';
+  const q = getQueries(language, isTypeScriptFlavor);
   // ── Functions, methods, arrow functions ────────────────────────────────────
 
   const allFnMatches = [
@@ -254,31 +324,36 @@ export function extractTSSignatures(
     }
   }
 
-  // ── Interfaces ─────────────────────────────────────────────────────────────
+  // ── Interfaces (TypeScript/TSX only) ────────────────────────────────────────
 
-  for (const match of q.iface.matches(tree.rootNode)) {
-    const sig = buildInterfaceSignature(match);
-    if (!sig) continue;
-    // Prefix to prevent collision with function named identically
-    result.set(`interface:${sig.properties.length >= 0 ? getCapture(match, 'name')?.text : ''}`, sig);
+  if (q.iface) {
+    for (const match of q.iface.matches(tree.rootNode)) {
+      const sig = buildInterfaceSignature(match);
+      if (!sig) continue;
+      // Prefix to prevent collision with function named identically
+      result.set(`interface:${sig.properties.length >= 0 ? getCapture(match, 'name')?.text : ''}`, sig);
+    }
   }
 
-  // ── Enums ──────────────────────────────────────────────────────────────────
+  // ── Enums (TypeScript/TSX only) ──────────────────────────────────────────────
 
-  for (const match of q.enum.matches(tree.rootNode)) {
-    const sig = buildEnumSignature(match);
-    if (!sig) continue;
-    result.set(`enum:${getCapture(match, 'name')?.text}`, sig);
+  if (q.enum) {
+    for (const match of q.enum.matches(tree.rootNode)) {
+      const sig = buildEnumSignature(match);
+      if (!sig) continue;
+      result.set(`enum:${getCapture(match, 'name')?.text}`, sig);
+    }
   }
 
-  // ── Type aliases ───────────────────────────────────────────────────────────
+  // ── Type aliases (TypeScript/TSX only) ───────────────────────────────────────
 
-  for (const match of q.alias.matches(tree.rootNode)) {
-    const sig = buildTypeAliasSignature(match);
-    if (!sig) continue;
-    result.set(`type:${getCapture(match, 'name')?.text}`, sig);
+  if (q.alias) {
+    for (const match of q.alias.matches(tree.rootNode)) {
+      const sig = buildTypeAliasSignature(match);
+      if (!sig) continue;
+      result.set(`type:${getCapture(match, 'name')?.text}`, sig);
+    }
   }
-
   return result;
 }
 

@@ -112,7 +112,7 @@ export class ASTMapper {
 
     let lang: WasmLanguage;
     try {
-      lang = await this.getLanguage(language);
+      lang = await this.getLanguage(this.resolveGrammarCode(diff.language));
     } catch (err: any) {
       return this.skipped(diff.path, err.message);
     }
@@ -222,13 +222,15 @@ export class ASTMapper {
     lang: WasmLanguage,
   ): RawSignatureMap {
     switch (ext) {
-      case 'ts':
+     case 'ts':
       case 'tsx':
       case 'js':
       case 'jsx':
-        // TypeScript grammar handles JS too — same node types for shared syntax
-        return extractTSSignatures(tree, lang);
-
+        // Pass ext through — the translator compiles a different query set
+        // for plain JS/JSX vs. TS/TSX, since TS-only node types (type_annotation,
+        // interface_declaration, etc.) don't exist in the plain JS grammar and
+        // referencing them causes a hard "Bad node name" throw at query-compile time.
+        return extractTSSignatures(tree, lang, ext);
       case 'py':
         return extractPySignatures(tree, lang);
 
@@ -316,7 +318,7 @@ export class ASTMapper {
   resolveGrammarCode(ext: string): string {
     const map: Record<string, string> = {
       ts:   'typescript',
-      tsx:  'typescript', // NOT 'tsx' — tree-sitter-typescript ships tsx grammar
+      tsx:  'tsx', // NOT 'tsx' — tree-sitter-typescript ships tsx grammar
       js:   'javascript',
       jsx:  'javascript', // NOT 'jsx' — tree-sitter-javascript ships jsx grammar
       py:   'python',

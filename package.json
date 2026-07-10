@@ -22,7 +22,7 @@
     "init": "npm install && npm run build:grammars",
     "build": "tsc",
     "postbuild": "shx chmod +x dist/cli.js",
-    "build:grammars": "shx mkdir -p grammars && npx tree-sitter build --wasm ./node_modules/tree-sitter-typescript/typescript && npx tree-sitter build --wasm ./node_modules/tree-sitter-javascript && npx tree-sitter build --wasm ./node_modules/tree-sitter-python && npx tree-sitter build --wasm ./node_modules/tree-sitter-java && npx tree-sitter build --wasm ./node_modules/tree-sitter-rust && npx tree-sitter build --wasm ./node_modules/tree-sitter-go && shx mv *.wasm ./grammars/",
+   "build:grammars": "shx mkdir -p grammars && npx tree-sitter build --wasm ./node_modules/tree-sitter-typescript/typescript && npx tree-sitter build --wasm ./node_modules/tree-sitter-typescript/tsx && npx tree-sitter build --wasm ./node_modules/tree-sitter-javascript && npx tree-sitter build --wasm ./node_modules/tree-sitter-python && npx tree-sitter build --wasm ./node_modules/tree-sitter-java && npx tree-sitter build --wasm ./node_modules/tree-sitter-rust && npx tree-sitter build --wasm ./node_modules/tree-sitter-go && shx mv *.wasm ./grammars/",
     "dev": "tsx src/index.ts",
     "test": "vitest",
     "lint": "tsc --noEmit"
