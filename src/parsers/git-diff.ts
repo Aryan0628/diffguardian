@@ -26,13 +26,13 @@
  * @module SourceProvider
  */
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
 import { FileDiff } from '../core/types';
 import { isTargetFile } from '../core/utils';
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // 10MB limit
 const MAX_BUFFER = 10 * 1024 * 1024;
@@ -73,28 +73,31 @@ export async function extractGitSources(
   }
 
   // ── Build the git diff command based on mode ────────────────────────────
-  let diffCmd: string;
+  const args = ["diff", "--name-status"];
 
-  if (headSha === WORKING_TREE) {
-    // Compare baseSha against working tree (uncommitted files)
-    diffCmd = `git diff --name-status ${baseSha}`;
-  } else if (headSha === STAGED) {
-    // Compare baseSha against staged index (git add'd files)
-    diffCmd = `git diff --name-status --cached ${baseSha}`;
-  } else {
-    // Standard: compare two committed refs
-    diffCmd = `git diff --name-status ${baseSha} ${headSha}`;
+  if (headSha === STAGED) {
+    args.push("--cached");
   }
 
-  // Append path filter if provided (e.g., -- src/payments)
+  args.push(baseSha);
+
+  if (headSha !== WORKING_TREE && headSha !== STAGED) {
+    args.push(headSha);
+  }
+
   if (pathFilter) {
-    diffCmd += ` -- ${pathFilter}`;
+    args.push("--", pathFilter);
   }
 
-  const { stdout: nameStatus } = await execAsync(
-    diffCmd,
-    { maxBuffer: MAX_BUFFER, cwd: repoRoot },
+  const { stdout: nameStatus } = await execFileAsync(
+    "git",
+    args,
+    {
+      cwd: repoRoot,
+      maxBuffer: MAX_BUFFER,
+    }
   );
+
 
   const lines = nameStatus.trim().split('\n').filter(Boolean);
   if (lines.length === 0) return [];
@@ -218,10 +221,14 @@ async function runGitShow(
   const ref = sha ? `${sha}:${filePath}` : filePath;
 
   try {
-    const { stdout } = await execAsync(
-      `git show ${ref}`,
-      { maxBuffer: MAX_BUFFER, cwd: repoRoot },
-    );
+    const { stdout } = await execFileAsync(
+      'git',
+      ['show', ref],
+      {
+        maxBuffer: MAX_BUFFER,
+        cwd: repoRoot,
+      },
+   );
     return stdout;
   } catch (error: any) {
     const stderr: string = error.stderr ?? '';

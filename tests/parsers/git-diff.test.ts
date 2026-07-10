@@ -240,7 +240,14 @@ describe('Git Diff Parser — extractGitSources()', () => {
       fs.writeFileSync(apiPath, currentContent);
     }
   });
+  it('treats shell metacharacters as literal git refs instead of executing them', async () => {
+    await expect(
+      extractGitSources('HEAD; echo hacked', 'HEAD', TEMP_DIR)
+    ).rejects.toThrow();
 
+  // If execFile() is being used correctly, "echo hacked" is NOT executed.
+  // Git simply treats the entire string as an invalid ref.
+  });
   // ═══════════════════════════════════════════════════════════════════════════
   // STAGED MODE
   // ═══════════════════════════════════════════════════════════════════════════
