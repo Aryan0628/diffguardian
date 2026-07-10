@@ -316,7 +316,7 @@ export class ASTMapper {
   resolveGrammarCode(ext: string): string {
     const map: Record<string, string> = {
       ts:   'typescript',
-      tsx:  'typescript', // NOT 'tsx' — tree-sitter-typescript ships tsx grammar
+      tsx:  "tsx", // NOT 'tsx' — tree-sitter-typescript ships tsx grammar
       js:   'javascript',
       jsx:  'javascript', // NOT 'jsx' — tree-sitter-javascript ships jsx grammar
       py:   'python',
