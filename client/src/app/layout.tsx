@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import SmoothScroll from "@/components/SmoothScroll";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import BackToTop from "@/components/BackToTop";
 import "./globals.css";
 
 const inter = Inter({
@@ -61,8 +62,11 @@ export default function RootLayout({
           style={{ zIndex: 0 }} 
         />
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <SmoothScroll>{children}</SmoothScroll>
-        </ThemeProvider>
+  <SmoothScroll>
+    {children}
+    <BackToTop />
+  </SmoothScroll>
+</ThemeProvider>
       </body>
     </html>
   );
