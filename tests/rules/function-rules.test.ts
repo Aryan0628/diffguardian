@@ -38,6 +38,7 @@ import { defaultValueChangedRule }     from '../../src/classifier/rules/R23_defa
 import { constructorChangedRule }      from '../../src/classifier/rules/R24_constructor_changed';
 import { exportedRule }                from '../../src/classifier/rules/R28_exported';
 import { generatorToggledRule }        from '../../src/classifier/rules/R30_generator_toggle';
+import { abstractModifierAddedRule }   from '../../src/classifier/rules/R31_abstract_modifier_added';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // R01: Parameter Removed
@@ -1432,6 +1433,53 @@ describe('R30 — generatorToggledRule', () => {
     const newSig = mockFnSig({});
 
     const result = generatorToggledRule.check(oldSig, newSig);
+
+    expect(result).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R31: Abstract Modifier Added
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('R31 — abstractModifierAddedRule', () => {
+
+  it('✅ True Positive: flags concrete method → abstract', () => {
+    const oldSig = mockFnSig({ isAbstract: false });
+    const newSig = mockFnSig({ isAbstract: true });
+
+    const result = abstractModifierAddedRule.check(oldSig, newSig);
+
+    expect(result).not.toBeNull();
+    expect(asSingle(result).severity).toBe('breaking');
+    expect(asSingle(result).changeType).toBe('modifier_changed');
+    expect(asSingle(result).message).toContain('abstract');
+  });
+
+  it('✅ True Positive (Safe): flags abstract → concrete as advisory', () => {
+    const oldSig = mockFnSig({ isAbstract: true });
+    const newSig = mockFnSig({ isAbstract: false });
+
+    const result = abstractModifierAddedRule.check(oldSig, newSig);
+
+    expect(result).not.toBeNull();
+    expect(asSingle(result).severity).toBe('safe');
+    expect(asSingle(result).changeType).toBe('modifier_changed');
+  });
+
+  it('🚫 False Positive: both concrete must return null', () => {
+    const sig = mockFnSig({ isAbstract: false });
+
+    const result = abstractModifierAddedRule.check(sig, sig);
+
+    expect(result).toBeNull();
+  });
+
+  it('🔲 Edge Case: isAbstract undefined on both sides must not throw and must return null', () => {
+    const oldSig = mockFnSig({});
+    const newSig = mockFnSig({});
+
+    const result = abstractModifierAddedRule.check(oldSig, newSig);
 
     expect(result).toBeNull();
   });

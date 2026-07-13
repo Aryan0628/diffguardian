@@ -125,9 +125,10 @@ diffguardian/
 │   │       ├── index.ts        # Rule barrel file
 │   │       ├── R01_param_removed.ts
 │   │       ├── R02_param_reordered.ts
-│   │       ├── ...             # 28 rules total
+│   │       ├── ...             # 29 rules total
 │   │       ├── R29_type_alias_union_narrowed.ts
-│   │       └── R30_generator_toggle.ts
+│   │       ├── R30_generator_toggle.ts
+│   │       └── R31_abstract_modifier_added.ts
 │   │
 │   ├── reporter/
 │   │   ├── types.ts            # Reporter interface and config types
@@ -238,7 +239,7 @@ export const yourRule: FunctionRule = {
 
 Before submitting a new rule, ensure the following:
 
-1. Assign the next available rule ID (`R31`, `R32`, etc.)
+1. Assign the next available rule ID (`R32`, `R33`, etc.)
 2. Create the rule file in `src/classifier/rules/`
 3. Export it from `src/classifier/rules/index.ts`
 4. Write tests covering both positive and negative cases

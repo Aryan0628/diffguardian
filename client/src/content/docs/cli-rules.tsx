@@ -39,6 +39,7 @@ const allRules: RuleEntry[] = [
   { id: "R28", name: "Visibility Widened", target: "function", severity: "safe", languages: "All", description: "A previously internal symbol becomes exported. The API surface expands, but existing callers are unaffected.", example: "function helper() -> export function helper()" },
   { id: "R29", name: "Type Alias Union Narrowed", target: "type_alias", severity: "breaking", languages: "TypeScript", description: "A string/number/boolean literal union type alias loses one of its members. Exhaustive switch statements and literal comparisons against the removed value will fail to compile or silently mishandle it.", example: "type Status = 'active' | 'inactive' -> type Status = 'active'" },
   { id: "R30", name: "Generator Function Toggle", target: "function", severity: "breaking", languages: "TS, Python", description: "A function adds or removes the generator modifier (function*, yield). The calling convention changes completely — callers receive an iterator instead of a direct value, or vice versa.", example: "function nextId() -> function* nextId()" },
+  { id: "R31", name: "Abstract Modifier Added", target: "function", severity: "breaking", languages: "All", description: "A concrete method is changed to abstract. Every existing subclass that does not already override this method will fail to compile, since a concrete implementation is no longer inherited.", example: "process(): void { ... } -> abstract process(): void;" },
 ];
 
 function SeverityBadge({ severity }: { severity: string }) {

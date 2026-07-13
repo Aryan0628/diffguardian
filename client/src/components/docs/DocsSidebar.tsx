@@ -77,6 +77,7 @@ const sections: SidebarSection[] = [
       { label: "R28 Exported", slug: "rules/r28" },
       { label: "R29 Union Narrowed", slug: "rules/r29" },
       { label: "R30 Generator Toggle", slug: "rules/r30" },
+      { label: "R31 Abstract Modifier Added", slug: "rules/r31" },
     ],
   },
   {
