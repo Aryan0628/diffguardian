@@ -37,6 +37,20 @@ npx dg compare abc1234 def5678`}
         language="bash"
       />
 
+      <h2 id="flags">Flags</h2>
+      <div className="docs-table-wrapper">
+        <table className="docs-table">
+          <thead>
+            <tr><th>Flag</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>--report-file &lt;path&gt;</code></td><td>Write a JSON report to the specified file path.</td></tr>
+            <tr><td><code>--format &lt;type&gt;</code></td><td>Output format: <code>terminal</code> (default), <code>json</code>, or <code>sarif</code>. Use <code>sarif</code> to produce a SARIF 2.1.0 log for GitHub Code Scanning — see <Link href="/docs/ci-cd">CI/CD Integration</Link>.</td></tr>
+            <tr><td><code>--help, -h</code></td><td>Show help message.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
       <h2 id="how-it-works">How it works</h2>
       <p>
         The compare command runs the full 4-phase pipeline:
@@ -91,7 +105,7 @@ npx dg compare abc1234 def5678`}
 
   Diff-Guardian API Analysis
   Base: main -> Head: feature/payments
-  ────────────────────────────────────────
+  ──────────────────────────────────────────────────────────
 
   [BREAKING] Changes (2)
 
@@ -107,7 +121,7 @@ npx dg compare abc1234 def5678`}
     src/types/config.ts:8
     R26: Property 'timeout' was removed from interface.
 
-  ────────────────────────────────────────
+  ──────────────────────────────────────────────────────────
   [STRICT MODE]
   2 breaking changes found. Exiting with code 1.`}
         language="bash"

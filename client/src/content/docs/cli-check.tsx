@@ -58,8 +58,9 @@ npx dg check packages/core # Monorepo: scope to one package`} language="bash" />
             <tr><th>Flag</th><th>Description</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>--staged</code></td><td>Analyze only staged (git add&apos;d) files instead of the full working tree.</td></tr>
+            <tr><td><code>--staged</code></td><td>Analyze only staged (git add'd) files instead of the full working tree.</td></tr>
             <tr><td><code>--report-file &lt;path&gt;</code></td><td>Write a JSON report to the specified file path.</td></tr>
+            <tr><td><code>--format &lt;type&gt;</code></td><td>Output format: <code>terminal</code> (default), <code>json</code>, or <code>sarif</code>. Use <code>sarif</code> to produce a SARIF 2.1.0 log for GitHub Code Scanning — see <Link href="/docs/ci-cd">CI/CD Integration</Link>.</td></tr>
             <tr><td><code>--help, -h</code></td><td>Show help message.</td></tr>
           </tbody>
         </table>
@@ -77,11 +78,47 @@ npx dg check packages/core # Monorepo: scope to one package`} language="bash" />
     src/api/payments.ts:42
     Parameter 'currency' was removed. Callers providing this argument will fail.
 
-  ────────────────────────────────────────
+  ──────────────────────────────────────────────────────────
   [STRICT MODE]
   1 breaking change found. Exiting with code 1.`}
         language="bash"
       />
+
+      <h2 id="sarif-example">SARIF output example</h2>
+      <p>
+        Piping <code>--format sarif</code> to a file produces a standards-compliant
+        SARIF 2.1.0 log instead of the terminal report:
+      </p>
+      <CodeBlock
+        code={`$ npx dg check --format sarif > diffguardian.sarif
+
+# diffguardian.sarif
+{
+  "version": "2.1.0",
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": { "driver": { "name": "Diff-Guardian", "rules": [ /* ... */ ] } },
+      "results": [
+        {
+          "ruleId": "signature_change",
+          "level": "error",
+          "message": { "text": "processPayment: Parameter 'currency' was removed." },
+          "locations": [
+            { "physicalLocation": { "artifactLocation": { "uri": "src/api/payments.ts" }, "region": { "startLine": 42 } } }
+          ]
+        }
+      ]
+    }
+  ]
+}`}
+        language="bash"
+      />
+      <p>
+        Upload the file with{" "}
+        <code>github/codeql-action/upload-sarif</code> in a workflow step to surface
+        breaking changes directly in the GitHub Security tab, alongside CodeQL findings.
+      </p>
 
       <h2 id="related">Related</h2>
       <ul>

@@ -40,6 +40,24 @@ import { JITScanner, createDefaultTracerConfig } from './tracer';
 const KNOWN_COMMANDS = ['check', 'compare', 'trace', 'rules', 'init', 'list-rules'];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Local-mode reporter formats.
+// 'github' is intentionally excluded — it requires PR context (token, PR
+// number, repo slug) that only exists in CI and is wired separately in
+// runSmartDefault(). check/compare only ever run against these three.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type LocalFormat = 'terminal' | 'json' | 'sarif';
+
+function normalizeFormat(raw: string | undefined): LocalFormat | undefined {
+  if (raw === 'terminal' || raw === 'json' || raw === 'sarif') return raw;
+  if (raw !== undefined) {
+    console.error(chalk.red(`\n  Error: unknown --format "${raw}". Expected one of: terminal, json, sarif.\n`));
+    process.exit(1);
+  }
+  return undefined;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Git helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -116,6 +134,8 @@ ${chalk.bold('Commands:')}
 ${chalk.bold('Options:')}
 
   ${chalk.cyan('--help, -h')}                       Show this help message
+  ${chalk.cyan('--format <type>')}                  Output format for check/compare: terminal (default), json, sarif
+                                    Example: npx dg check --format sarif > diffguardian.sarif
   `);
 }
 
@@ -324,6 +344,7 @@ async function runCheck(
   failOnWarnings?: boolean,
   reportFile?: string,
   hookContext?: 'pre-push' | 'pre-merge-commit' | 'post-merge',
+  format?: LocalFormat,
 ): Promise<number> {
   const mode = staged ? 'staged' : 'working tree';
   const headRef = staged ? STAGED : WORKING_TREE;
@@ -336,7 +357,7 @@ async function runCheck(
 
   const reporterConfig: ReporterConfig = {
     mode: 'strict',
-    format: 'terminal',
+    format: format || 'terminal',
     quiet: false,
     failOnWarnings,
     reportFile,
@@ -369,6 +390,7 @@ async function runCompare(
   failOnWarnings?: boolean,
   reportFile?: string,
   hookContext?: 'pre-push' | 'pre-merge-commit' | 'post-merge',
+  format?: LocalFormat,
 ): Promise<number> {
   console.log(chalk.bold.blue(`\nDiff-Guardian Compare\n`));
   console.log(chalk.dim(`  Base: ${baseSha}`));
@@ -376,7 +398,7 @@ async function runCompare(
 
   const reporterConfig: ReporterConfig = {
     mode: 'strict',
-    format: 'terminal',
+    format: format || 'terminal',
     quiet: false,
     failOnWarnings,
     reportFile,
@@ -464,7 +486,7 @@ async function runSmartDefault(
 async function main() {
   const args = minimist(process.argv.slice(2), {
     boolean: ['help', 'staged', 'json'],
-    string: ['report-file', 'scope'],
+    string: ['report-file', 'scope', 'format'],
     alias: { h: 'help' },
   });
 
@@ -472,6 +494,12 @@ async function main() {
   const reportFile = args['report-file'] || undefined;
   const jsonOutput = args.json || false;
   const scope      = args.scope || undefined;
+  // NOTE: intentionally NOT validated here. --format only applies to
+  // check/compare — validating it globally would make e.g.
+  // `npx dg trace foo --format bogus` fail even though `trace` never
+  // reads this flag. Each command that supports it normalizes/validates
+  // it itself, below.
+  const rawFormat  = args['format'] || undefined;
 
   // ── Hook context (set by husky hooks via DG_HOOK env var) ────────────────
   const hookContext = (process.env.DG_HOOK as 'pre-push' | 'pre-merge-commit' | 'post-merge') || undefined;
@@ -516,15 +544,16 @@ async function main() {
     process.exit(0);
   }
 
-  // ── npx dg check [--staged] [path] ──────────────────────────────────────
+  // ── npx dg check [--staged] [path] [--format <type>] ─────────────────────
   if (command === 'check') {
     const staged = args.staged || false;
     const pathFilter = args._[1] || undefined; // optional path scope
-    const exitCode = await runCheck(repoRoot, staged, pathFilter, config.failOnWarnings, reportFile, hookContext);
+    const format = normalizeFormat(rawFormat); // validated here — only check/compare use it
+    const exitCode = await runCheck(repoRoot, staged, pathFilter, config.failOnWarnings, reportFile, hookContext, format);
     process.exit(exitCode);
   }
 
-  // ── npx dg compare <base> [head] ────────────────────────────────────────
+  // ── npx dg compare <base> [head] [--format <type>] ────────────────────────
   if (command === 'compare') {
     const baseSha = args._[1];
     const headSha = args._[2] || 'HEAD';
@@ -539,7 +568,8 @@ async function main() {
       process.exit(1);
     }
 
-    const exitCode = await runCompare(baseSha, headSha, repoRoot, config.failOnWarnings, reportFile, hookContext);
+    const format = normalizeFormat(rawFormat); // validated here — only check/compare use it
+    const exitCode = await runCompare(baseSha, headSha, repoRoot, config.failOnWarnings, reportFile, hookContext, format);
     process.exit(exitCode);
   }
 
