@@ -1,7 +1,7 @@
 /**
  * tests/rules/interface-rules.test.ts
  *
- * Phase 1: Pure Rule Unit Tests — Interface Rules R25, R26.
+ * Phase 1: Pure Rule Unit Tests — Interface Rules R25, R26, R32.
  *
  * These tests invoke rule.check() directly with mock InterfaceSignature objects.
  * NO AST parser is involved. Each describe block follows the 4-case contract:
@@ -16,6 +16,7 @@ import { mockInterfaceSig, mockProperty, asArray } from '../setup';
 
 import { interfacePropertyRequiredRule } from '../../src/classifier/rules/R25_interface_property_required';
 import { interfacePropertyRemovedRule }  from '../../src/classifier/rules/R26_interface_property_removed';
+import { interfaceExtendsRemovedRule }   from '../../src/classifier/rules/R32_interface_extends_removed';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // R25: Interface Property Made Required / Added
@@ -169,5 +170,86 @@ describe('R26 — interfacePropertyRemovedRule', () => {
     const result = interfacePropertyRemovedRule.check(oldSig, newSig);
 
     expect(result).toBeNull();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// R32: Interface Parent Removed
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('R32 — interfaceExtendsRemovedRule', () => {
+
+  it('✅ True Positive: flags when a single parent is removed', () => {
+    const oldSig = mockInterfaceSig({ extends: ['Timestamped'] });
+    const newSig = mockInterfaceSig({ extends: [] });
+
+    const result = interfaceExtendsRemovedRule.check(oldSig, newSig);
+
+    expect(result).not.toBeNull();
+    const results = asArray(result);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe('breaking');
+    expect(results[0].changeType).toBe('interface_extends_changed');
+    expect(results[0].message).toContain('Timestamped');
+  });
+
+  it('✅ True Positive: flags each removed parent independently when multiple are dropped', () => {
+    const oldSig = mockInterfaceSig({ extends: ['Base', 'Auditable', 'Serializable'] });
+    const newSig = mockInterfaceSig({ extends: ['Base'] });
+
+    const result = interfaceExtendsRemovedRule.check(oldSig, newSig);
+
+    expect(result).not.toBeNull();
+    const results = asArray(result);
+    expect(results).toHaveLength(2);
+    const messages = results.map(r => r.message).join(' ');
+    expect(messages).toContain('Auditable');
+    expect(messages).toContain('Serializable');
+  });
+
+  it('🚫 False Positive: reordering the same set of parents must return null', () => {
+    const oldSig = mockInterfaceSig({ extends: ['Base', 'Auditable'] });
+    const newSig = mockInterfaceSig({ extends: ['Auditable', 'Base'] });
+
+    const result = interfaceExtendsRemovedRule.check(oldSig, newSig);
+
+    expect(result).toBeNull();
+  });
+
+  it('🚫 False Positive: adding a new parent alongside existing ones must return null', () => {
+    const oldSig = mockInterfaceSig({ extends: ['Base'] });
+    const newSig = mockInterfaceSig({ extends: ['Base', 'Auditable'] });
+
+    const result = interfaceExtendsRemovedRule.check(oldSig, newSig);
+
+    expect(result).toBeNull();
+  });
+
+  it('🚫 False Positive: identical extends arrays must return null', () => {
+    const sig = mockInterfaceSig({ extends: ['Base'] });
+
+    const result = interfaceExtendsRemovedRule.check(sig, sig);
+
+    expect(result).toBeNull();
+  });
+
+  it('🔲 Edge Case: both sides have no extends clause (undefined) — must not throw', () => {
+    const oldSig = mockInterfaceSig({ extends: undefined });
+    const newSig = mockInterfaceSig({ extends: undefined });
+
+    const result = interfaceExtendsRemovedRule.check(oldSig, newSig);
+
+    expect(result).toBeNull();
+  });
+
+  it('🔲 Edge Case: old side had a parent, new side has extends undefined entirely — must flag, not throw', () => {
+    const oldSig = mockInterfaceSig({ extends: ['Base'] });
+    const newSig = mockInterfaceSig({ extends: undefined });
+
+    const result = interfaceExtendsRemovedRule.check(oldSig, newSig);
+
+    expect(result).not.toBeNull();
+    const results = asArray(result);
+    expect(results[0].message).toContain('Base');
   });
 });

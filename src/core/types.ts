@@ -42,6 +42,7 @@ export type ChangeType =
   | 'overload_changed'           // R15, R16: overload removed or added
   | 'interface_property_added'   // R25: new required property added to interface
   | 'interface_property_removed' // R26: property removed from interface
+  | 'interface_extends_changed'  // R32: interface stopped extending a previous parent
   | 'enum_member_changed'        // R27: enum value removed, renamed, or re-assigned
   | 'type_alias_changed'         // type alias union narrowed or structurally changed
   | 'symbol_deleted'             // R9:  symbol removed entirely
@@ -238,6 +239,9 @@ export interface FunctionChange {
   breaking:   boolean;      // true if classifier determined callers will break
   severity:   Severity;     // breaking | warning | safe — reporter bucketing
   message?:   string;       // reason for the violation reported by the classifier rule
+  ruleId?:    string;       // the exact rule that produced this change (e.g. 'R01')
+                             // undefined for synthetic changes not tied to a rule
+                             // (symbol_deleted / symbol_added, produced directly by the engine)
   callers:    CallSite[];   // populated by tracer (empty array after classifier)
 
   // ── Tracer metadata ───────────────────────────────────────────────────────
@@ -281,6 +285,8 @@ export interface AnalysisResult {
   apiChanges:  FunctionChange[]; // all changes breaking + warning + safe
   testGaps:    FunctionChange[]; // breaking changes whose callers lack tests
   riskFiles:   RiskFile[];
+  versionRecommendation?: import('../versioning/types').SemverRecommendation; // set when --recommend-version is used
+  changelogDraft?: string;       // set when --draft-changelog is used — Keep-a-Changelog-style markdown
 }
 
 // ── FileDiff ──────────────────────────────────────────────────────────────────

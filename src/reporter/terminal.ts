@@ -19,6 +19,7 @@
 import chalk from 'chalk';
 import { AnalysisResult, FunctionChange } from '../core/types';
 import { Reporter, ReporterConfig } from './types';
+import { SemverRecommendation } from '../versioning/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -54,6 +55,26 @@ export const TerminalReporter: Reporter = {
     console.log(chalk.dim(`Base: ${baseSha} → Head: ${headSha}`));
     console.log(DIVIDER);
     console.log();
+
+    // ── Version recommendation (issue #34) — shown first: the single most
+    // actionable piece of information for someone deciding whether to
+    // approve as-is or request a version bump ──────────────────────────────
+    if (result.versionRecommendation) {
+      printVersionRecommendation(result.versionRecommendation);
+    }
+
+    // ── Changelog draft (issue #34) ─────────────────────────────────────────
+    if (result.changelogDraft) {
+      console.log(chalk.bold.blue('Changelog Draft'));
+      console.log(chalk.dim('(paste into CHANGELOG.md)'));
+      console.log();
+      for (const line of result.changelogDraft.split('\n')) {
+        console.log(`  ${line}`);
+      }
+      console.log();
+      console.log(DIVIDER);
+      console.log();
+    }
 
     // ── Breaking changes ─────────────────────────────────────────────────────
     if (breaking.length > 0) {
@@ -218,6 +239,21 @@ function printChange(change: FunctionChange, color: 'red' | 'yellow'): void {
   }
 
   // ── Visual separator between change entries ──────────────────────────────
+  console.log();
+}
+
+function printVersionRecommendation(rec: SemverRecommendation): void {
+  const bumpColor = rec.bump === 'major' ? chalk.bgRed.white.bold
+    : rec.bump === 'minor' ? chalk.bgYellow.black.bold
+    : chalk.bgGreen.black.bold;
+
+  console.log(bumpColor(` RECOMMENDED VERSION BUMP: ${rec.bump.toUpperCase()} `));
+  console.log();
+  for (const line of rec.justification) {
+    console.log(`  ${chalk.dim('•')} ${line}`);
+  }
+  console.log();
+  console.log(DIVIDER);
   console.log();
 }
 

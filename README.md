@@ -33,7 +33,7 @@ The result? Silent regressions, broken CI/CD pipelines, and painful merge resolu
 ### The Solution
 Traditional diffs show **what changed**. Diff Guardian shows **what breaks**.
 
-Diff Guardian acts as an automated safety net. Using WASM-compiled Tree-Sitter grammars, it parses your code into abstract syntax tree (AST) signatures, compares the before and after states across any branch, and evaluates every diff against **29 strict production rules**. It then traces every call site across your ecosystem to show **exactly who is affected** before you merge or push.
+Diff Guardian acts as an automated safety net. Using WASM-compiled Tree-Sitter grammars, it parses your code into abstract syntax tree (AST) signatures, compares the before and after states across any branch, and evaluates every diff against **30 strict production rules**. It then traces every call site across your ecosystem to show **exactly who is affected** before you merge or push.
 
 ```
 $ npx dg compare main feature-branch
@@ -61,7 +61,7 @@ $ npx dg compare main feature-branch
 | Capability | Description |
 |---|---|
 | **AST-Powered Analysis** | Tree-Sitter WASM grammars parse your code into structural signatures — not regex |
-| **29 Classification Rules** | Covers parameter changes, return types, generics, visibility, enums, interfaces, type aliases, and more |
+| **30 Classification Rules** | Covers parameter changes, return types, generics, visibility, enums, interfaces, type aliases, and more |
 | **Blast Radius Tracing** | JIT import scanner and call-site tracer shows every consumer affected by a breaking change |
 | **CI/CD Native** | Auto-detects GitHub Actions and posts PR comments with full audit reports |
 | **Git Hook Enforcement** | Built-in Husky hooks block broken code at `pre-push`, `pre-merge-commit`, and `post-merge` |
@@ -185,7 +185,7 @@ Shows every file that imports the given symbol and where it is used:
 npx dg rules
 ```
 
-Prints all 29 classification rules with their IDs, names, targets, and descriptions.
+Prints all 30 classification rules with their IDs, names, targets, and descriptions.
 
 > For detailed examples and remediation guidance, see the [full rules documentation](https://diffguardian.vercel.app/docs/rules/all).
 
@@ -197,6 +197,47 @@ npx dg init
 
 Creates `dg.config.json` and the GitHub Actions workflow. Skips files that already exist.
 
+### Versioning: Semver Recommendation + Changelog Draft
+
+Diff Guardian already classifies every change into `breaking` / `warning` /
+`safe`. Add `--recommend-version` and/or `--draft-changelog` to `check` or
+`compare` to turn that classification into the two things a maintainer needs
+before releasing:
+
+```bash
+# Get a semver bump recommendation, with justification
+npx dg compare main --recommend-version
+
+# Get a Keep-a-Changelog-style draft, ready to paste into CHANGELOG.md
+npx dg compare main --draft-changelog
+
+# Both together, and write the changelog draft to a file
+npx dg compare main --recommend-version --draft-changelog --changelog-output CHANGELOG.draft.md
+```
+
+**Semver recommendation logic** (standard semver by default):
+
+| Condition | Recommended bump |
+|---|---|
+| Any `breaking` change present | `major` |
+| Any `warning` change present, no breaking | `minor` |
+| Only `safe` changes | `patch` |
+
+The recommendation always includes justification referencing the specific
+rule(s) that drove the decision — e.g. `R01: Parameter 'currency' was
+removed. (processPayment in src/api/payments.ts)` — not just the bump level
+alone.
+
+**Changelog draft** groups changes under Keep-a-Changelog-style headers —
+`### Breaking Changes`, `### Deprecated`, `### Added`, `### Fixed` — using
+human-readable descriptions rather than raw rule codes as the headline text
+(rule IDs are still included, parenthetically, for traceability).
+
+In CI, both the recommended version bump and the changelog draft are shown
+prominently at the top of the GitHub PR comment — the version bump is the
+single most actionable piece of information for a reviewer deciding whether
+to approve as-is or request a bigger bump.
+
 ### Global Options
 
 | Option | Description |
@@ -204,6 +245,9 @@ Creates `dg.config.json` and the GitHub Actions workflow. Skips files that alrea
 | `--help`, `-h` | Show help message |
 | `--staged` | Limit `check` to staged files only |
 | `--report-file <path>` | Write JSON report to a file |
+| `--recommend-version` | Output a semver bump recommendation (see above) |
+| `--draft-changelog` | Emit a Keep-a-Changelog-style draft (see above) |
+| `--changelog-output <path>` | Write the changelog draft to a file instead of only showing it inline (requires `--draft-changelog`) |
 
 ---
 
@@ -218,7 +262,10 @@ Diff Guardian looks for a `dg.config.json` file in your project root.
   "enableTracer": true,
   "maxGrepResults": 500,
   "maxBarrelDepth": 10,
-  "maxTracerFiles": 100
+  "maxTracerFiles": 100,
+  "versioningOverrides": {
+    "R23": "major"
+  }
 }
 ```
 
@@ -230,14 +277,19 @@ Diff Guardian looks for a `dg.config.json` file in your project root.
 | `maxGrepResults` | `number` | `500` | Max files returned by `git grep` per symbol |
 | `maxBarrelDepth` | `number` | `10` | Max recursive barrel file depth |
 | `maxTracerFiles` | `number` | `100` | Max files to AST-parse for call sites per symbol |
+| `versioningOverrides` | `Record<string, 'major' \| 'minor' \| 'patch'>` | `{}` | Per-rule ID overrides of the default severity → semver mapping (e.g. force a specific deprecation rule to require a `major` bump instead of the default `minor`) |
 
 Fields with the wrong type, or unrecognized top-level keys, are reported as
 `[dg] dg.config.json: ...` warnings on load and ignored (their default is
-used instead) — the file itself is never rejected wholesale.
+used instead) — the file itself is never rejected wholesale. Individual
+`versioningOverrides` entries are validated the same way: an entry with an
+unrecognized rule ID or an invalid bump value is dropped (with a warning)
+without discarding the rest of the map.
 
 ---
 
 ## CI/CD Integration
+
 
 ### GitHub Actions
 

@@ -19,6 +19,7 @@
 
 import { AnalysisResult, FunctionChange } from '../core/types';
 import { Reporter, ReporterConfig } from './types';
+import { SemverRecommendation } from '../versioning/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -87,6 +88,25 @@ function buildMarkdown(
   lines.push('');
   lines.push('## Diff-Guardian API Audit');
   lines.push('');
+
+  // ── Version recommendation (issue #34) — surfaced prominently at the top,
+  // since it's the single most actionable piece of info for a reviewer ──────
+  if (result.versionRecommendation) {
+    lines.push(...formatVersionRecommendation(result.versionRecommendation));
+  }
+
+  // ── Changelog draft (issue #34) ─────────────────────────────────────────
+  if (result.changelogDraft) {
+    lines.push('<details>');
+    lines.push('<summary><strong>📝 Changelog Draft</strong></summary>');
+    lines.push('');
+    lines.push('```markdown');
+    lines.push(result.changelogDraft.trimEnd());
+    lines.push('```');
+    lines.push('');
+    lines.push('</details>');
+    lines.push('');
+  }
 
   // ── Breaking ──────────────────────────────────────────────────────────────
   if (breaking.length > 0) {
@@ -270,6 +290,26 @@ async function upsertComment(config: ReporterConfig, markdown: string): Promise<
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Formats the semver recommendation as a prominent Markdown callout,
+ * with the justification lines (already human-readable, produced by
+ * semverRecommender.ts) as a bullet list.
+ */
+function formatVersionRecommendation(rec: SemverRecommendation): string[] {
+  const badge = rec.bump === 'major' ? '🔴 MAJOR'
+    : rec.bump === 'minor' ? '🟡 MINOR'
+    : '🟢 PATCH';
+
+  const lines: string[] = [];
+  lines.push(`### Recommended Version Bump: ${badge}`);
+  lines.push('');
+  for (const justification of rec.justification) {
+    lines.push(`- ${sanitizeInline(justification)}`);
+  }
+  lines.push('');
+  return lines;
+}
 
 /**
  * Formats a single FunctionChange as a Markdown table row.

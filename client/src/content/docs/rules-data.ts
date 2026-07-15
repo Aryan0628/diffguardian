@@ -1111,6 +1111,49 @@ export class MyService extends Service {}
     ],
     relatedRules: ["R17", "R30"],
   },
+  "R32": {
+    id: "R32",
+    name: "Interface Parent Removed",
+    severity: "breaking",
+    target: "interface",
+    languages: ["TypeScript", "Java", "Go", "Rust"],
+    summary: "Flags when an interface (or Java interface, Go embedded interface, Rust trait bound) stops extending one of its previous parents. Consumers relying on structural compatibility inherited only through that parent lose that guarantee.",
+    whyItMatters: `Extending a parent interface is a promise: anything satisfying the child also structurally satisfies the parent. Code elsewhere in the codebase — or in consuming packages — is often written against that promise directly, expecting a value typed as the child to also work anywhere the parent is expected. Silently dropping the \`extends\` clause breaks that promise without touching a single property on the interface itself, which makes it an easy change to miss in review: the diff on the interface body can be empty.`,
+    howItWorks: `Every translator (TypeScript, Java, Go, Rust) already extracts the interface's parent list into \`extends: string[] | undefined\` during AST parsing — TypeScript reads the \`heritage_clause\`/\`extends_type_clause\`, Java reads \`extends_interfaces\`, Go reads embedded interface fields, and Rust reads trait bounds. R32 diffs \`oldSig.extends\` against \`newSig.extends\` using \`.includes()\` (not index position, so reordering the same set of parents is never flagged) and reports one \`breaking\` result per parent present in the old list but absent from the new one. Adding a new parent, with no removals, is not flagged — it can only add compatibility, never remove it.`,
+    beforeCode: `// api.ts
+interface Timestamped {
+  createdAt: string;
+}
+
+export interface AuditableUser extends Timestamped {
+  id: string;
+  name: string;
+}`,
+    afterCode: `// api.ts (BREAKING — no longer extends Timestamped)
+export interface AuditableUser {
+  id: string;
+  name: string;
+}
+
+// Any function typed to accept a Timestamped and called with an
+// AuditableUser value now fails to type-check, even though nothing
+// on AuditableUser itself changed.`,
+    beforeLabel: "Before",
+    afterLabel: "After (parent removed)",
+    cliOutput: `$ npx dg check
+
+  [BREAKING] AuditableUser (interface_extends_changed)
+  src/api.ts:5
+  The interface no longer extends 'Timestamped'. Callers relying on properties or methods inherited from 'Timestamped' will fail to compile or lose type-level compatibility with it.`,
+    realWorldScenario: `A maintainer flattens an interface hierarchy for readability, inlining the parent's properties directly and dropping the \`extends\` clause since "the fields are all still there." Everything on the interface itself looks unchanged in the diff. But any function elsewhere accepting the *parent* type — a common pattern for shared handlers — silently stops accepting the child, and the failure surfaces as a confusing type error far from the actual change.`,
+    edgeCases: [
+      "Reordering the same set of parents (extends A, B → extends B, A) is not flagged — comparison is set-based via .includes(), not positional",
+      "Adding a new parent alongside existing ones is not flagged — only removals are breaking",
+      "A generic parent's type argument changing (Base<string> → Base<number>) is captured as full raw text, so it reads as remove+add of two different strings — same accepted limitation documented on R29 for literal union renames",
+      "Python has no interface/trait construct and is not analyzed by this rule",
+    ],
+    relatedRules: ["R26"],
+  },
 };
 
 /** Return ordered list of rule IDs */

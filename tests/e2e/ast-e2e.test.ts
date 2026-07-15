@@ -203,4 +203,28 @@ describe('E2E AST Pipeline — WASM + Engine integration', () => {
     expect(changes[0].symbolType).toBe('function');
   });
 
+  it('✅ Identifies an interface that stops extending a parent (R32)', async () => {
+    const oldCode = `
+      interface Timestamped { createdAt: string; }
+      export interface AuditableUser extends Timestamped {
+        id: string;
+      }
+    `;
+    const newCode = `
+      interface Timestamped { createdAt: string; }
+      export interface AuditableUser {
+        id: string;
+      }
+    `;
+
+    const diff = createMockDiff(oldCode, newCode);
+    const parsedDiffs = await mapper.buildSignatureCache([diff]);
+    const changes = engine.compare(parsedDiffs[0]);
+
+    expect(changes).toHaveLength(1);
+    expect(changes[0].severity).toBe('breaking');
+    expect(changes[0].changeType).toBe('interface_extends_changed');
+    expect(changes[0].message).toContain('Timestamped');
+  });
+
 });
