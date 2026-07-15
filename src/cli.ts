@@ -32,6 +32,19 @@ import { loadConfig, CONFIG_FILE } from './config';
 import * as rules from './classifier/rules/index';
 import { WORKING_TREE, STAGED } from './parsers/git-diff';
 import { JITScanner, createDefaultTracerConfig } from './tracer';
+import { SemverBump } from './versioning/types';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Versioning CLI options (issue #34) — bundled together since they're always
+// threaded through from `main()` into ReporterConfig as a group.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface VersioningCliOptions {
+  recommendVersion?: boolean;
+  draftChangelog?: boolean;
+  changelogOutputPath?: string;
+  versioningOverrides?: Record<string, SemverBump>;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Known commands — used for routing and unknown-command detection
@@ -116,6 +129,11 @@ ${chalk.bold('Commands:')}
 ${chalk.bold('Options:')}
 
   ${chalk.cyan('--help, -h')}                       Show this help message
+  ${chalk.cyan('--recommend-version')}               Output a semver bump recommendation (major/minor/patch)
+                                    with justification referencing the driving rule violations
+  ${chalk.cyan('--draft-changelog')}                 Emit a Keep-a-Changelog-style draft grouped by category
+  ${chalk.cyan('--changelog-output <path>')}          Write the changelog draft to a file instead of stdout/report
+                                    (requires --draft-changelog)
   `);
 }
 
@@ -324,6 +342,7 @@ async function runCheck(
   failOnWarnings?: boolean,
   reportFile?: string,
   hookContext?: 'pre-push' | 'pre-merge-commit' | 'post-merge',
+  versioningOptions?: VersioningCliOptions,
 ): Promise<number> {
   const mode = staged ? 'staged' : 'working tree';
   const headRef = staged ? STAGED : WORKING_TREE;
@@ -341,6 +360,7 @@ async function runCheck(
     failOnWarnings,
     reportFile,
     hookContext,
+    ...versioningOptions,
   };
 
   try {
@@ -369,6 +389,7 @@ async function runCompare(
   failOnWarnings?: boolean,
   reportFile?: string,
   hookContext?: 'pre-push' | 'pre-merge-commit' | 'post-merge',
+  versioningOptions?: VersioningCliOptions,
 ): Promise<number> {
   console.log(chalk.bold.blue(`\nDiff-Guardian Compare\n`));
   console.log(chalk.dim(`  Base: ${baseSha}`));
@@ -381,6 +402,7 @@ async function runCompare(
     failOnWarnings,
     reportFile,
     hookContext,
+    ...versioningOptions,
   };
 
   try {
@@ -401,6 +423,7 @@ async function runSmartDefault(
   failOnWarnings?: boolean,
   reportFile?: string,
   hookContext?: 'pre-push' | 'pre-merge-commit' | 'post-merge',
+  versioningOptions?: VersioningCliOptions,
 ): Promise<number> {
   if (process.env.GITHUB_ACTIONS === 'true') {
     // ── CI/CD Mode ─────────────────────────────────────────────────────
@@ -414,6 +437,7 @@ async function runSmartDefault(
       failOnWarnings,
       reportFile,
       hookContext,
+      ...versioningOptions,
     };
 
     try {
@@ -446,6 +470,7 @@ async function runSmartDefault(
       failOnWarnings,
       reportFile,
       hookContext,
+      ...versioningOptions,
     };
 
     try {
@@ -463,8 +488,8 @@ async function runSmartDefault(
 
 async function main() {
   const args = minimist(process.argv.slice(2), {
-    boolean: ['help', 'staged', 'json'],
-    string: ['report-file', 'scope'],
+    boolean: ['help', 'staged', 'json', 'recommend-version', 'draft-changelog'],
+    string: ['report-file', 'scope', 'changelog-output'],
     alias: { h: 'help' },
   });
 
@@ -491,6 +516,19 @@ async function main() {
 
   const repoRoot = process.cwd();
   const config = loadConfig(repoRoot);
+
+  // ── Versioning options (issue #34) — CLI flags control whether the
+  // recommendation/draft are computed at all; dg.config.json only ever
+  // supplies the per-rule override map, never turns the features on/off ──────
+  if (args['changelog-output'] && !args['draft-changelog']) {
+    console.warn(chalk.yellow('\n  Warning: --changelog-output has no effect without --draft-changelog.\n'));
+  }
+  const versioningOptions: VersioningCliOptions = {
+    recommendVersion: !!args['recommend-version'],
+    draftChangelog: !!args['draft-changelog'],
+    changelogOutputPath: args['changelog-output'] || undefined,
+    versioningOverrides: config.versioningOverrides,
+  };
 
   // ── npx dg init ──────────────────────────────────────────────────────────
   if (command === 'init') {
@@ -520,7 +558,7 @@ async function main() {
   if (command === 'check') {
     const staged = args.staged || false;
     const pathFilter = args._[1] || undefined; // optional path scope
-    const exitCode = await runCheck(repoRoot, staged, pathFilter, config.failOnWarnings, reportFile, hookContext);
+    const exitCode = await runCheck(repoRoot, staged, pathFilter, config.failOnWarnings, reportFile, hookContext, versioningOptions);
     process.exit(exitCode);
   }
 
@@ -539,13 +577,13 @@ async function main() {
       process.exit(1);
     }
 
-    const exitCode = await runCompare(baseSha, headSha, repoRoot, config.failOnWarnings, reportFile, hookContext);
+    const exitCode = await runCompare(baseSha, headSha, repoRoot, config.failOnWarnings, reportFile, hookContext, versioningOptions);
     process.exit(exitCode);
   }
 
   // ── npx dg (Smart Default) ──────────────────────────────────────────────
   if (!command) {
-    const exitCode = await runSmartDefault(repoRoot, config.failOnWarnings, reportFile, hookContext);
+    const exitCode = await runSmartDefault(repoRoot, config.failOnWarnings, reportFile, hookContext, versioningOptions);
     process.exit(exitCode);
   }
 }

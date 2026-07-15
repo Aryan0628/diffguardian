@@ -176,3 +176,58 @@ describe('loadConfig', () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 });
+
+// ── versioningOverrides (issue #34) ─────────────────────────────────────────
+
+describe('validateConfig — versioningOverrides', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('accepts a valid rule-ID → bump map', () => {
+    const result = validateConfig({ versioningOverrides: { R23: 'major', R10: 'patch' } });
+    expect(result.versioningOverrides).toEqual({ R23: 'major', R10: 'patch' });
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('drops entries with a non-rule-ID key and warns, keeping valid entries', () => {
+    const result = validateConfig({ versioningOverrides: { R23: 'major', notARule: 'minor' } });
+    expect(result.versioningOverrides).toEqual({ R23: 'major' });
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('notARule'));
+  });
+
+  it('drops entries with an invalid bump value and warns, keeping valid entries', () => {
+    const result = validateConfig({ versioningOverrides: { R23: 'huge', R10: 'patch' } });
+    expect(result.versioningOverrides).toEqual({ R10: 'patch' });
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('R23'));
+  });
+
+  it('ignores the whole field (with a warning) if it is not an object', () => {
+    const result = validateConfig({ versioningOverrides: 'major' as any });
+    expect(result.versioningOverrides).toBeUndefined();
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('versioningOverrides'));
+  });
+
+  it('ignores the whole field if it is an array', () => {
+    const result = validateConfig({ versioningOverrides: ['major'] as any });
+    expect(result.versioningOverrides).toBeUndefined();
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('an array'));
+  });
+
+  it('omits versioningOverrides entirely when every entry is invalid', () => {
+    const result = validateConfig({ versioningOverrides: { notARule: 'huge' } as any });
+    expect(result.versioningOverrides).toBeUndefined();
+  });
+
+  it('does not flag versioningOverrides itself as an unknown key', () => {
+    const result = validateConfig({ versioningOverrides: { R23: 'major' } });
+    const unknownKeyWarning = (console.warn as any).mock.calls.find((call: any[]) =>
+      String(call[0]).includes('unknown key')
+    );
+    expect(unknownKeyWarning).toBeUndefined();
+  });
+});

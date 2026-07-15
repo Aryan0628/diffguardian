@@ -239,6 +239,9 @@ export interface FunctionChange {
   breaking:   boolean;      // true if classifier determined callers will break
   severity:   Severity;     // breaking | warning | safe — reporter bucketing
   message?:   string;       // reason for the violation reported by the classifier rule
+  ruleId?:    string;       // the exact rule that produced this change (e.g. 'R01')
+                             // undefined for synthetic changes not tied to a rule
+                             // (symbol_deleted / symbol_added, produced directly by the engine)
   callers:    CallSite[];   // populated by tracer (empty array after classifier)
 
   // ── Tracer metadata ───────────────────────────────────────────────────────
@@ -282,6 +285,8 @@ export interface AnalysisResult {
   apiChanges:  FunctionChange[]; // all changes breaking + warning + safe
   testGaps:    FunctionChange[]; // breaking changes whose callers lack tests
   riskFiles:   RiskFile[];
+  versionRecommendation?: import('../versioning/types').SemverRecommendation; // set when --recommend-version is used
+  changelogDraft?: string;       // set when --draft-changelog is used — Keep-a-Changelog-style markdown
 }
 
 // ── FileDiff ──────────────────────────────────────────────────────────────────

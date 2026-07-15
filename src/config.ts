@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
+import { SemverBump } from './versioning/types';
 
 export interface DgConfig {
   baseBranch?: string;
@@ -15,6 +16,15 @@ export interface DgConfig {
   maxBarrelDepth?: number;
   /** Max files to AST-parse for call sites per symbol (default: 100) */
   maxTracerFiles?: number;
+
+  // ── Versioning settings (issue #34) ─────────────────────────────────────
+  /**
+   * Per-rule severity-to-semver overrides, keyed by rule ID (e.g. 'R23').
+   * Lets a team require a bigger bump than the default severity mapping
+   * for a specific rule (e.g. treating a deprecation warning as major)
+   * without forking the tool. Values must be one of 'major' | 'minor' | 'patch'.
+   */
+  versioningOverrides?: Record<string, SemverBump>;
 }
 
 export const CONFIG_FILE = 'dg.config.json';
@@ -37,7 +47,7 @@ function positiveInteger(value: number): string | null {
   return Number.isInteger(value) && value > 0 ? null : 'must be a positive integer';
 }
 
-const CONFIG_SCHEMA: Record<keyof DgConfig, FieldSchema> = {
+const CONFIG_SCHEMA: Record<keyof Omit<DgConfig, 'versioningOverrides'>, FieldSchema> = {
   baseBranch: { type: 'string' },
   failOnWarnings: { type: 'boolean' },
   enableTracer: { type: 'boolean' },
@@ -46,7 +56,58 @@ const CONFIG_SCHEMA: Record<keyof DgConfig, FieldSchema> = {
   maxTracerFiles: { type: 'number', validate: positiveInteger },
 };
 
-const KNOWN_KEYS = Object.keys(CONFIG_SCHEMA) as (keyof DgConfig)[];
+// versioningOverrides has a different shape (a map, not a scalar) so it's
+// validated separately below rather than through CONFIG_SCHEMA's typeof-based
+// checks — but it's still a "known" top-level key, not a typo candidate.
+const KNOWN_KEYS = [...Object.keys(CONFIG_SCHEMA), 'versioningOverrides'] as (keyof DgConfig)[];
+
+const VALID_SEMVER_BUMPS = new Set(['major', 'minor', 'patch']);
+const RULE_ID_PATTERN = /^R\d+$/;
+
+/**
+ * Validates the `versioningOverrides` field: must be a plain object whose
+ * keys look like rule IDs ('R' followed by digits) and whose values are one
+ * of 'major' | 'minor' | 'patch'. Invalid entries are dropped individually
+ * (with a warning) rather than discarding the whole map, matching the
+ * per-field tolerance of the rest of this validator.
+ */
+function validateVersioningOverrides(raw: any): Record<string, SemverBump> | undefined {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    console.warn(
+      chalk.yellow(
+        `[dg] ${CONFIG_FILE}: "versioningOverrides" must be an object mapping rule IDs to ` +
+          `'major' | 'minor' | 'patch', got ${Array.isArray(raw) ? 'an array' : typeof raw}. Ignoring.`
+      )
+    );
+    return undefined;
+  }
+
+  const result: Record<string, SemverBump> = {};
+
+  for (const [ruleId, bump] of Object.entries(raw)) {
+    if (!RULE_ID_PATTERN.test(ruleId)) {
+      console.warn(
+        chalk.yellow(
+          `[dg] ${CONFIG_FILE}: "versioningOverrides" key "${ruleId}" doesn't look like a rule ID ` +
+            `(expected e.g. "R23"). Ignoring this entry.`
+        )
+      );
+      continue;
+    }
+    if (typeof bump !== 'string' || !VALID_SEMVER_BUMPS.has(bump)) {
+      console.warn(
+        chalk.yellow(
+          `[dg] ${CONFIG_FILE}: "versioningOverrides.${ruleId}" must be 'major', 'minor', or 'patch', ` +
+            `got ${JSON.stringify(bump)}. Ignoring this entry.`
+        )
+      );
+      continue;
+    }
+    result[ruleId] = bump as SemverBump;
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
 
 /**
  * Validates a raw parsed JSON value against the DgConfig schema.
@@ -75,9 +136,10 @@ export function validateConfig(raw: any): DgConfig {
 
   for (const key of KNOWN_KEYS) {
     if (!(key in raw)) continue;
+    if (key === 'versioningOverrides') continue; // handled separately below — different shape
 
     const value = raw[key];
-    const schema = CONFIG_SCHEMA[key];
+    const schema = CONFIG_SCHEMA[key as keyof typeof CONFIG_SCHEMA];
     const actualType = typeof value;
 
     if (actualType !== schema.type) {
@@ -104,6 +166,11 @@ export function validateConfig(raw: any): DgConfig {
     }
 
     (config as Record<string, unknown>)[key] = value;
+  }
+
+  if ('versioningOverrides' in raw) {
+    const overrides = validateVersioningOverrides(raw.versioningOverrides);
+    if (overrides) config.versioningOverrides = overrides;
   }
 
   const unknownKeys = Object.keys(raw).filter((k) => !KNOWN_KEYS.includes(k as keyof DgConfig));

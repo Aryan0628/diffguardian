@@ -53,8 +53,8 @@ export class ClassifierEngine {
         // O(1) Routing & Rule Execution using pre-computed buckets
         const violations = this.runRules(key, oldSig, newSig, ruleBuckets);
         
-        for (const v of violations) {
-          changes.push(this.createChangeRecord(key, file, language, v.severity, v.changeType, v.message, oldSig, newSig));
+        for (const { ruleId, result: v } of violations) {
+          changes.push(this.createChangeRecord(key, file, language, v.severity, v.changeType, v.message, oldSig, newSig, ruleId));
         }
       }
     }
@@ -68,8 +68,8 @@ export class ClassifierEngine {
     oldSig: AnySignature, 
     newSig: AnySignature, 
     buckets: Record<string, Rule<any>[]>
-  ): RuleResult[] {
-    const results: RuleResult[] = [];
+  ): Array<{ ruleId: string; result: RuleResult }> {
+    const results: Array<{ ruleId: string; result: RuleResult }> = [];
     let rulesToRun: Rule<any>[] = [];
 
     // CRITICAL FIX: Safe, bucketed routing without blind type casting
@@ -86,8 +86,8 @@ export class ClassifierEngine {
     for (const rule of rulesToRun) {
       const triggered = rule.check(oldSig, newSig);
       if (triggered) {
-        if (Array.isArray(triggered)) results.push(...triggered);
-        else results.push(triggered);
+        if (Array.isArray(triggered)) results.push(...triggered.map(result => ({ ruleId: rule.id, result })));
+        else results.push({ ruleId: rule.id, result: triggered });
       }
     }
 
@@ -102,7 +102,8 @@ export class ClassifierEngine {
     type: ChangeType, 
     msg: string, 
     oldSig?: AnySignature, 
-    newSig?: AnySignature
+    newSig?: AnySignature,
+    ruleId?: string,
   ): FunctionChange {
     const activeSig = newSig || oldSig;
     let symbolType: 'function' | 'interface' | 'enum' | 'type_alias' = 'function';
@@ -122,6 +123,7 @@ export class ClassifierEngine {
       changeType: type,
       breaking: severity === 'breaking',
       message: msg,
+      ruleId,
       before: oldSig ?? null,
       after: newSig ?? null,
       callers: []

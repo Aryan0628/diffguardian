@@ -32,5 +32,6 @@ client/.next/
 client/out/
 client/.env.local
 
+*.wasm 
 
 

@@ -9,6 +9,8 @@ import { GithubReporter } from './reporter/github';
 import { JsonReporter } from './reporter/json';
 import { ReporterConfig } from './reporter/types';
 import { JITScanner, CallSiteTracer, createDefaultTracerConfig } from './tracer';
+import { recommendVersion } from './versioning/semverRecommender';
+import { generateChangelogDraft } from './versioning/changelogDraft';
 
 export interface PipelineOptions {
   baseSha: string;
@@ -110,6 +112,28 @@ export async function runPipeline(opts: PipelineOptions): Promise<number> {
     testGaps: [],
     riskFiles: []
   };
+
+  // ── 4.5 Versioning: semver recommendation + changelog draft ────────────────
+  // Computed here (rather than in each reporter) so both terminal and github
+  // reporters — and the raw JSON/report-file output — see the same result,
+  // and so CLI flags don't need pipeline-external post-processing.
+  if (opts.config.recommendVersion) {
+    result.versionRecommendation = recommendVersion(allChanges, opts.config.versioningOverrides);
+  }
+  if (opts.config.draftChangelog) {
+    const draft = generateChangelogDraft(allChanges);
+    result.changelogDraft = draft.markdown;
+
+    if (opts.config.changelogOutputPath) {
+      try {
+        const changelogPath = path.resolve(repoRoot, opts.config.changelogOutputPath);
+        fs.writeFileSync(changelogPath, draft.markdown, 'utf-8');
+        console.log(`[pipeline] Changelog draft written to ${opts.config.changelogOutputPath}`);
+      } catch (err: any) {
+        console.warn(`[pipeline] Failed to write changelog draft: ${err.message}`);
+      }
+    }
+  }
 
   // ── 5. Report ──────────────────────────────────────────────────────────────
   if (opts.config.format === 'github') {
