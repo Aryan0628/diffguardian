@@ -27,3 +27,4 @@ export * from './R28_exported';
 export * from './R29_type_alias_union_narrowed';
 export * from './R30_generator_toggle';
 export * from './R31_abstract_modifier_added';
+export * from './R32_interface_extends_removed';

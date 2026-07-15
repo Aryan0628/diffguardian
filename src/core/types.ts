@@ -42,6 +42,7 @@ export type ChangeType =
   | 'overload_changed'           // R15, R16: overload removed or added
   | 'interface_property_added'   // R25: new required property added to interface
   | 'interface_property_removed' // R26: property removed from interface
+  | 'interface_extends_changed'  // R32: interface stopped extending a previous parent
   | 'enum_member_changed'        // R27: enum value removed, renamed, or re-assigned
   | 'type_alias_changed'         // type alias union narrowed or structurally changed
   | 'symbol_deleted'             // R9:  symbol removed entirely
