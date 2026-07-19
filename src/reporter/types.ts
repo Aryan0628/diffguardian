@@ -3,7 +3,7 @@ import { SemverBump } from '../versioning/types';
 
 export interface ReporterConfig {
   mode: 'strict' | 'warn';
-  format?: 'terminal' | 'github' | 'json';
+  format?: 'terminal' | 'github' | 'json' | 'sarif';
   githubToken?: string;
   prNumber?: number;
   repoSlug?: string;

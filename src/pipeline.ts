@@ -7,6 +7,7 @@ import { AnalysisResult, FunctionChange, FunctionSignature, EnumSignature, FileD
 import { TerminalReporter } from './reporter/terminal';
 import { GithubReporter } from './reporter/github';
 import { JsonReporter } from './reporter/json';
+import { SarifReporter } from './reporter/sarif';
 import { ReporterConfig } from './reporter/types';
 import { JITScanner, CallSiteTracer, createDefaultTracerConfig } from './tracer';
 import { recommendVersion } from './versioning/semverRecommender';
@@ -140,6 +141,8 @@ export async function runPipeline(opts: PipelineOptions): Promise<number> {
     await GithubReporter.render(result, opts.config);
   } else if (opts.config.format === 'json') {
     await JsonReporter.render(result, opts.config);
+  } else if (opts.config.format === 'sarif') {
+    await SarifReporter.render(result, opts.config);
   } else {
     await TerminalReporter.render(result, opts.config);
   }
